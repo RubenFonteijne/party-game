@@ -7,25 +7,29 @@
   <link rel="stylesheet" href="/css/style.css">
 
   <style>
-    /* Hide panel background in ANSWERING view */
-    body.answering-view .panel {
+    /* Hide panel background in ANSWERING and REVEAL views */
+    body.answering-view .panel,
+    body.reveal-view .panel {
       background: transparent;
       border: none;
       box-shadow: none;
     }
     
-    body.answering-view .panelInner {
+    body.answering-view .panelInner,
+    body.reveal-view .panelInner {
       background: transparent;
     }
     
-    body.answering-view .card {
+    body.answering-view .card,
+    body.reveal-view .card {
       background: transparent;
       border: none;
       box-shadow: none;
       padding: 0;
     }
     
-    body.answering-view .wrap {
+    body.answering-view .wrap,
+    body.reveal-view .wrap {
       padding: 0;
     }
 
@@ -46,6 +50,75 @@
       padding: 28px;
       overflow: hidden;
       z-index: 10;
+    }
+
+    /* REVEAL view: clean presentatie zonder donkere achtergronden */
+    #viewReveal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 40px 28px;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    #viewReveal .viewTitle {
+      display: none;
+    }
+
+    #viewReveal .revealBox {
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 22px;
+      padding: 40px;
+      box-shadow: 0 12px 60px rgba(0,0,0,.3);
+      max-width: 900px;
+      width: 100%;
+    }
+
+    #viewReveal #targetLabel {
+      font-size: clamp(16px, 2vw, 20px);
+      margin-bottom: 16px;
+      color: rgba(255,255,255,.7);
+    }
+
+    #viewReveal #targetAnswer {
+      font-size: clamp(42px, 5vw, 72px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin: 20px 0 40px;
+      color: rgba(255,255,255,.95);
+    }
+
+    #viewReveal #predictionsList {
+      margin: 40px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    #viewReveal .predRow {
+      padding: 12px 0;
+      border-top: 1px solid rgba(255,255,255,.12);
+      font-size: clamp(18px, 2.2vw, 24px);
+    }
+
+    #viewReveal .predRow:first-child {
+      border-top: none;
+    }
+
+    #viewReveal #nextRevealBtn {
+      margin-top: 40px;
     }
 
     #centerPrompt {
@@ -170,17 +243,13 @@
 
           <!-- REVEAL -->
           <div id="viewReveal" style="display:none;">
-            <div class="viewTitle">Reveal</div>
-
             <div class="revealBox">
               <div class="muted" id="targetLabel"></div>
               <div class="bigAnswer" id="targetAnswer"></div>
 
-              <div id="predictionsList" style="margin-top:14px;"></div>
+              <div id="predictionsList"></div>
 
-              <div style="margin-top:14px;">
-                <button class="btn" id="nextRevealBtn">Volgende speler</button>
-              </div>
+              <button class="btn" id="nextRevealBtn">Volgende speler</button>
             </div>
           </div>
 
@@ -309,21 +378,22 @@
     }
 
     function showView(gameState) {
-      // Header verbergen in ANSWERING voor clean presentatie
+      // Header verbergen in ANSWERING en REVEAL voor clean presentatie
       const topHeader = document.getElementById("topHeader");
-      topHeader.style.display = (gameState === "ANSWERING") ? "none" : "block";
+      topHeader.style.display = (gameState === "ANSWERING" || gameState === "REVEAL") ? "none" : "block";
 
-      // Add/remove class to body for ANSWERING view styling
+      // Add/remove classes to body for view styling
+      document.body.classList.remove("answering-view", "reveal-view");
       if (gameState === "ANSWERING") {
         document.body.classList.add("answering-view");
-      } else {
-        document.body.classList.remove("answering-view");
+      } else if (gameState === "REVEAL") {
+        document.body.classList.add("reveal-view");
       }
 
       document.getElementById("viewLobby").style.display = (gameState === "LOBBY") ? "block" : "none";
       document.getElementById("viewAnswering").style.display = (gameState === "ANSWERING") ? "flex" : "none";
       document.getElementById("answeringSlots").style.display = (gameState === "ANSWERING") ? "flex" : "none";
-      document.getElementById("viewReveal").style.display = (gameState === "REVEAL") ? "block" : "none";
+      document.getElementById("viewReveal").style.display = (gameState === "REVEAL") ? "flex" : "none";
       document.getElementById("viewScore").style.display = (gameState === "SCOREBOARD") ? "block" : "none";
     }
 
