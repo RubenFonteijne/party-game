@@ -131,6 +131,13 @@
     overflow: hidden;
   }
 
+  /* Join page: alleen panel achtergrond, geen card achtergrond */
+  .panel--narrow .card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
   .muted{ color: var(--muted); }
   code{
     display:inline-block;
@@ -414,6 +421,12 @@
     box-shadow:
       0 0 0 1px rgba(110,231,255,.18) inset,
       0 0 22px rgba(110,231,255,.10);
+  }
+
+  .input:disabled{
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(0,0,0,.15);
   }
   
   .hint{
