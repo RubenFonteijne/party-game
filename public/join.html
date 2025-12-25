@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Party Game — Join</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 18px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 520px; margin: 0 auto; }
+    input { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; }
+    button { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #222; background: #222; color: #fff; margin-top: 10px; }
+    button.secondary { background: #fff; color: #222; }
+    .muted { color: #666; }
+    .error { color: #c0392b; margin-top: 10px; }
+    .ok { color: #2c7; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Meedoen</h1>
+    <p class="muted">Room: <strong id="roomCode"></strong></p>
+
+    <div id="stepName">
+      <label for="name">Jouw naam</label>
+      <input id="name" placeholder="Bijv. Ruben" maxlength="24" />
+      <button id="joinBtn">Join</button>
+      <p class="error" id="joinError"></p>
+    </div>
+
+    <div id="stepReady" style="display:none">
+      <p class="ok">Je bent verbonden als <strong id="myName"></strong>.</p>
+      <button id="readyBtn">Ik ben ready ✅</button>
+      <button id="unreadyBtn" class="secondary" style="display:none">Toch niet ready</button>
+      <p class="muted" id="status"></p>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const roomCode = location.pathname.split("/").pop().toUpperCase();
+    document.getElementById("roomCode").textContent = roomCode;
+
+    const socket = io();
+    let playerId = null;
+
+    const nameEl = document.getElementById("name");
+    const joinBtn = document.getElementById("joinBtn");
+    const joinError = document.getElementById("joinError");
+
+    joinBtn.onclick = () => {
+      joinError.textContent = "";
+      const name = nameEl.value.trim();
+      socket.emit("joinRoom", { roomCode, name });
+    };
+
+    socket.on("joinError", (msg) => {
+      joinError.textContent = msg;
+    });
+
+    socket.on("joined", ({ playerId: pid, name }) => {
+      playerId = pid;
+      document.getElementById("stepName").style.display = "none";
+      document.getElementById("stepReady").style.display = "block";
+      document.getElementById("myName").textContent = name;
+      document.getElementById("status").textContent = "Wachten tot iedereen ready is…";
+    });
+
+    const readyBtn = document.getElementById("readyBtn");
+    const unreadyBtn = document.getElementById("unreadyBtn");
+
+    readyBtn.onclick = () => {
+      socket.emit("setReady", { roomCode, playerId, ready: true });
+      readyBtn.style.display = "none";
+      unreadyBtn.style.display = "block";
+    };
+
+    unreadyBtn.onclick = () => {
+      socket.emit("setReady", { roomCode, playerId, ready: false });
+      unreadyBtn.style.display = "none";
+      readyBtn.style.display = "block";
+    };
+
+    socket.on("roomState", (state) => {
+      // klein feedbackje voor speler
+      const me = state.players.find(p => p.id === playerId);
+      if (me) {
+        document.getElementById("status").textContent =
+          me.ready ? "Ready! ✅ Wachten op anderen…" : "Niet ready. Zet jezelf ready als je wil starten.";
+      }
+    });
+  </script>
+</body>
+</html>
