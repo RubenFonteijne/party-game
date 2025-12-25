@@ -7,9 +7,37 @@
   <link rel="stylesheet" href="/css/style.css">
 
   <style>
+    /* Hide panel background in ANSWERING view */
+    body.answering-view .panel {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    
+    body.answering-view .panelInner {
+      background: transparent;
+    }
+    
+    body.answering-view .card {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+    
+    body.answering-view .wrap {
+      padding: 0;
+    }
+
     /* Presentatie ANSWERING view: prompt exact in het midden */
     #viewAnswering {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       height: 100vh;
+      width: 100vw;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -17,6 +45,7 @@
       text-align: center;
       padding: 28px;
       overflow: hidden;
+      z-index: 10;
     }
 
     #centerPrompt {
@@ -278,6 +307,13 @@
       // Header verbergen in ANSWERING voor clean presentatie
       const topHeader = document.getElementById("topHeader");
       topHeader.style.display = (gameState === "ANSWERING") ? "none" : "block";
+
+      // Add/remove class to body for ANSWERING view styling
+      if (gameState === "ANSWERING") {
+        document.body.classList.add("answering-view");
+      } else {
+        document.body.classList.remove("answering-view");
+      }
 
       document.getElementById("viewLobby").style.display = (gameState === "LOBBY") ? "block" : "none";
       document.getElementById("viewAnswering").style.display = (gameState === "ANSWERING") ? "flex" : "none";
