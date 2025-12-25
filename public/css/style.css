@@ -351,3 +351,133 @@
     #qr{ width: 240px; height: 240px; }
     .slots{ grid-template-columns: repeat(3, minmax(0,1fr)); }
   }
+  /* =========================
+   JOIN PAGE (minimal & strak)
+   ========================= */
+
+.panel--narrow{
+    width: min(640px, 94vw);
+  }
+  
+  .cardTitle{
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: .2px;
+  }
+  
+  .kicker{
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  
+  .formStack{
+    display:flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .label{
+    display:block;
+    font-weight: 800;
+    color: rgba(255,255,255,.88);
+    margin-bottom: 6px;
+  }
+  
+  .input{
+    width:100%;
+    padding: 12px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.28);
+    color: rgba(255,255,255,.92);
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.03) inset;
+  }
+  
+  .input::placeholder{
+    color: rgba(255,255,255,.42);
+  }
+  
+  .input:focus{
+    border-color: rgba(110,231,255,.40);
+    box-shadow:
+      0 0 0 1px rgba(110,231,255,.18) inset,
+      0 0 22px rgba(110,231,255,.10);
+  }
+  
+  .hint{
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  
+  .errorText{
+    color: rgba(251,113,133,.92);
+    font-weight: 800;
+    margin-top: 8px;
+  }
+  
+  .successText{
+    color: rgba(52,211,153,.92);
+    font-weight: 800;
+  }
+  
+  .divider{
+    height: 1px;
+    background: rgba(255,255,255,.08);
+    margin: 12px 0;
+  }
+  
+  .sectionHeader{
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    color: rgba(255,255,255,.90);
+    margin: 0 0 10px;
+  }
+  
+  .predictList{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .predictItem{
+    border-radius: 16px;
+    padding: 12px;
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  
+  .predictWho{
+    font-weight: 900;
+    margin: 0 0 8px;
+    color: rgba(255,255,255,.90);
+  }
+  
+  .btnFull{
+    width:100%;
+    justify-content: center;
+  }
+  
+  .btnRowJoin{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  /* Maak de host buttons ook bruikbaar op join (zelfde classes) */
+  .btnInline{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+  }
+  
+  /* mobiele spacing */
+  @media (max-width: 420px){
+    .panelInner{ padding: 14px; } /* voor het geval je dit op join hergebruikt */
+    .card{ padding: 14px; }
+  }
+  

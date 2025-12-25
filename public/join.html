@@ -1,48 +1,96 @@
 <!doctype html>
 <html lang="nl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Party Game — Join</title>
-    <link rel="stylesheet" href="/css/style.css">
-    </head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Party Game — Join</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
 <body>
-  <div class="card">
-    <h1>Meedoen</h1>
-    <p class="muted">Room: <strong id="roomCode"></strong></p>
+  <!-- dezelfde streaks als host (als je ze in host.html had). Als je ze niet meer gebruikt: mag je dit weglaten -->
+  <div class="streak"></div>
+  <div class="streak s2"></div>
+  <div class="streak s3"></div>
 
-    <div id="stepName">
-      <label for="name">Jouw naam</label>
-      <input id="name" placeholder="Bijv. Ruben" maxlength="24" />
-      <button id="joinBtn">Join</button>
-      <p class="error" id="joinError"></p>
-    </div>
+  <div class="header">
+    <h1 class="title">Meedoen</h1>
+    <div class="subtitle">Room: <span id="roomCode"></span></div>
+  </div>
 
-    <div id="stepLobby" style="display:none;">
-      <p class="ok">Verbonden als <strong id="myName"></strong>.</p>
-      <button id="readyBtn">Ik ben ready ✅</button>
-      <button id="unreadyBtn" class="secondary" style="display:none;">Toch niet ready</button>
-      <p class="muted" id="status"></p>
-    </div>
+  <div class="wrap">
+    <div class="panel panel--narrow">
+      <div class="panelInner" style="grid-template-columns: 1fr;">
+        <div class="card">
 
-    <div id="stepAnswer" style="display:none;">
-      <p class="muted"><strong>Beantwoord de stelling op het scherm</strong></p>
-      <div class="field">
-        <label>Mijn antwoord</label>
-        <input id="selfAnswer" placeholder="Typ jouw antwoord..." maxlength="80"/>
+          <!-- STEP: NAME -->
+          <div id="stepName">
+            <div class="cardTitle">Jouw naam</div>
+            <div class="kicker">Vul je naam in en join de room.</div>
+
+            <div class="formStack">
+              <div>
+                <label class="label" for="name">Naam</label>
+                <input class="input" id="name" placeholder="Bijv. Ruben" maxlength="24" />
+                <div class="errorText" id="joinError"></div>
+              </div>
+
+              <button class="btn btnFull" id="joinBtn">Join</button>
+              <div class="hint">Tip: zet je telefoon rechtop voor sneller invullen.</div>
+            </div>
+          </div>
+
+          <!-- STEP: LOBBY -->
+          <div id="stepLobby" style="display:none;">
+            <div class="cardTitle">Je bent verbonden</div>
+            <div class="kicker">Als iedereen klaar is, start de host de ronde.</div>
+
+            <div class="successText">Verbonden als <strong id="myName"></strong>.</div>
+            <div class="divider"></div>
+
+            <div class="btnRowJoin">
+              <button class="btn btnFull" id="readyBtn">Ik ben ready ✅</button>
+              <button class="btn btnSecondary btnFull" id="unreadyBtn" style="display:none;">Toch niet ready</button>
+            </div>
+
+            <div class="hint" id="status" style="margin-top:10px;"></div>
+          </div>
+
+          <!-- STEP: ANSWER -->
+          <div id="stepAnswer" style="display:none;">
+            <div class="cardTitle">Invullen</div>
+            <div class="kicker"><strong>Beantwoord de stelling op het scherm.</strong></div>
+
+            <div class="formStack">
+              <div>
+                <label class="label" for="selfAnswer">Mijn antwoord</label>
+                <input class="input" id="selfAnswer" placeholder="Typ jouw antwoord…" maxlength="80"/>
+                <div class="hint">Kort en duidelijk werkt het fijnst.</div>
+              </div>
+
+              <div>
+                <div class="sectionHeader">Mijn voorspellingen</div>
+                <div class="predictList" id="predictFields"></div>
+              </div>
+
+              <div class="btnRowJoin">
+                <button class="btn btnFull" id="submitBtn">Versturen</button>
+                <button class="btn btnSecondary btnFull" id="editBtn" style="display:none;">Aanpassen</button>
+              </div>
+
+              <div class="hint" id="answerHint"></div>
+            </div>
+          </div>
+
+          <!-- STEP: WAIT -->
+          <div id="stepWait" style="display:none;">
+            <div class="cardTitle">Even wachten…</div>
+            <div class="kicker">De host toont zo de antwoorden op het scherm.</div>
+            <div class="hint" id="waitText">Wachten…</div>
+          </div>
+
+        </div>
       </div>
-
-      <div class="field" id="predictFields"></div>
-
-      <button id="submitBtn">Versturen</button>
-      <button id="editBtn" class="secondary" style="display:none;">Aanpassen</button>
-
-      <p class="muted small" id="answerHint"></p>
-    </div>
-
-    <div id="stepWait" style="display:none;">
-      <p class="muted"><strong>Even wachten…</strong></p>
-      <p class="muted" id="waitText">Host toont zo de antwoorden op het scherm.</p>
     </div>
   </div>
 
@@ -73,8 +121,7 @@
       playerId = pid;
       myName = name;
 
-      document.getElementById("stepName").style.display = "none";
-      document.getElementById("stepLobby").style.display = "block";
+      show("stepLobby");
       document.getElementById("myName").textContent = myName;
       document.getElementById("status").textContent = "Wachten tot iedereen ready is…";
     });
@@ -116,7 +163,6 @@
     };
 
     editBtn.onclick = () => {
-      // MVP: laat bewerken toe door opnieuw te submitten (overschrijft server submission)
       submitted = false;
       submitBtn.style.display = "block";
       editBtn.style.display = "none";
@@ -126,12 +172,10 @@
     // room state
     socket.on("roomState", (state) => {
       currentPlayers = state.players || [];
-
       if (!playerId) return;
 
       const me = currentPlayers.find(p => p.id === playerId);
 
-      // schermen wisselen op basis van game state
       if (state.state === "LOBBY") {
         show("stepLobby");
         if (me) {
@@ -181,10 +225,10 @@
         .filter(p => p.id !== myId)
         .forEach(p => {
           const div = document.createElement("div");
-          div.className = "row";
+          div.className = "predictItem";
           div.innerHTML = `
-            <label>Wat denk ik dat <strong>${escapeHtml(p.name)}</strong> invult?</label>
-            <input data-predict-id="${p.id}" placeholder="Jouw voorspelling..." maxlength="80"/>
+            <div class="predictWho">Wat denk ik dat ${escapeHtml(p.name)} invult?</div>
+            <input class="input" data-predict-id="${p.id}" placeholder="Jouw voorspelling…" maxlength="80"/>
           `;
           wrap.appendChild(div);
         });
