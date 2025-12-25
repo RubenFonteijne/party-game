@@ -10,20 +10,25 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 6;
+const QUESTIONS_PER_ROUND = 10;
 
 const PROMPTS = [
   "Ooit wil ik nog eens op vakantie naar …",
-  "Mijn favoriete eten is …",
+  "ALs ik voor de rest van mijn leven nog één keuken mag kiezen, dan kies ik de … keuken",
   "Ik zou later graag willen wonen in …",
   "Mijn grootste guilty pleasure is …",
   "Ik kan echt niet zonder …",
-  "Als ik morgen €1.000.000 win, dan …",
+  "Als ik morgen €1.000.000 win, dan koop ik als eerste …",
   "Mijn meest random talent is …",
-  "Ik ben stiekem bang voor …",
-  "Mijn perfecte weekend is …",
-  "Ik zou nooit kunnen daten met iemand die …"
+  "Mijn grootste irritant in het verkeer is …",
+  "Op een zonnige dag op het terras, bestel ik ...",
+  "Het eerste wat ik doe als ik wakker word is ...",
+  "Als ik een superkracht mag kiezen, dan is dat ...",
+  "Mijn favoriete genre muziek is ...",
+  "Mijn favoriete kleur is ..."
 ];
 
+// roomCode -> room
 const rooms = new Map();
 
 /* =======================
@@ -43,7 +48,7 @@ function stripDiacritics(str) {
 function normalizeAnswer(str) {
   let s = String(str || "").toLowerCase();
   s = stripDiacritics(s);
-  s = s.replace(/[^a-z0-9\s]/g, " ");   // punctuation weg
+  s = s.replace(/[^a-z0-9\s]/g, " "); // punctuation weg
   s = s.replace(/\s+/g, " ").trim();
   return s;
 }
@@ -62,15 +67,12 @@ function computeMatchRelaxed(a, b) {
   const nb = normalizeAnswer(b);
   if (!na || !nb) return false;
 
-  // exact match
   if (na === nb) return true;
 
-  // substring match (min lengte)
   const MIN_SUB = 4;
   if (na.length >= MIN_SUB && nb.includes(na)) return true;
   if (nb.length >= MIN_SUB && na.includes(nb)) return true;
 
-  // token overlap
   const ta = tokenize(na);
   const tb = tokenize(nb);
   if (!ta.length || !tb.length) return false;
@@ -84,7 +86,6 @@ function computeMatchRelaxed(a, b) {
   const union = new Set([...setA, ...setB]).size;
   const jaccard = union ? inter / union : 0;
 
-  // relaxed threshold
   return jaccard >= 0.6;
 }
 
@@ -97,6 +98,15 @@ function generateRoomCode() {
   return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function createRoom() {
   let code;
   do code = generateRoomCode();
@@ -106,14 +116,19 @@ function createRoom() {
     code,
     players: new Map(),
     game: {
-      state: "LOBBY",         // LOBBY | ANSWERING | REVEAL | SCOREBOARD
+      state: "LOBBY",             // LOBBY | ANSWERING | REVEAL | SCOREBOARD
       round: 1,
-      prompt: null,           // string
-      submissions: {},        // { [playerId]: { self, predicts:{[otherId]:text} } }
-      revealOrder: [],        // [playerId,...] target volgorde
-      revealIndex: 0,         // welke target nu
-      matchMap: {},           // { [targetId]: { [predictorId]: true/false } }
-      scoredPairs: {}         // { "r1:pX->pY": true }
+      question: 0,                // 1..QUESTIONS_PER_ROUND tijdens ronde
+      questionsPerRound: QUESTIONS_PER_ROUND,
+      prompt: null,
+      promptPool: [],
+
+      submissions: {},            // { [playerId]: { self, predicts:{[otherId]:text} } }
+      revealOrder: [],
+      revealIndex: 0,
+
+      matchMap: {},               // { [targetId]: { [predictorId]: true/false } }
+      scoredPairs: {}             // { "r1q3:pX->pY": true }
     }
   });
 
@@ -122,6 +137,23 @@ function createRoom() {
 
 function getRoom(code) {
   return rooms.get(String(code || "").toUpperCase());
+}
+
+function startNewQuestion(room) {
+  // vul promptPool opnieuw als nodig
+  if (!room.game.promptPool || room.game.promptPool.length === 0) {
+    room.game.promptPool = shuffle(PROMPTS);
+  }
+
+  room.game.prompt = room.game.promptPool.shift();
+  room.game.state = "ANSWERING";
+
+  room.game.submissions = {};
+  room.game.revealOrder = Array.from(room.players.keys());
+  room.game.revealIndex = 0;
+
+  room.game.matchMap = {};
+  room.game.scoredPairs = {}; // per vraag resetten
 }
 
 function playersArray(room) {
@@ -134,12 +166,6 @@ function playersArray(room) {
   }));
 }
 
-/**
- * Host snapshot bevat:
- * - prompt
- * - submissions (alleen host)
- * - revealData voor animatie (alleen host)
- */
 function snapshot(room, isHost) {
   const players = playersArray(room);
 
@@ -149,6 +175,8 @@ function snapshot(room, isHost) {
     state: room.game.state,
     players,
     round: room.game.round,
+    question: room.game.question,
+    questionsPerRound: room.game.questionsPerRound,
     submissionsCount: Object.keys(room.game.submissions || {}).length,
     revealOrder: room.game.revealOrder,
     revealIndex: room.game.revealIndex
@@ -156,7 +184,7 @@ function snapshot(room, isHost) {
 
   if (!isHost) return base;
 
-  // current reveal data (voor de animatie)
+  // revealData voor host animatie
   let revealData = null;
   if (room.game.state === "REVEAL") {
     const order = room.game.revealOrder || [];
@@ -185,7 +213,6 @@ function snapshot(room, isHost) {
   return {
     ...base,
     prompt: room.game.prompt,
-    submissions: room.game.submissions,
     revealData
   };
 }
@@ -282,6 +309,7 @@ io.on("connection", (socket) => {
     emitRoom(room.code);
   });
 
+  // Start ronde = vraag 1/10
   socket.on("hostStartGame", ({ roomCode }) => {
     const room = getRoom(roomCode);
     if (!room) return;
@@ -292,13 +320,14 @@ io.on("connection", (socket) => {
     const allReady = connected.every(p => p.ready);
     if (!allReady) return;
 
-    room.game.state = "ANSWERING";
-    room.game.prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
-    room.game.submissions = {};
-    room.game.revealOrder = Array.from(room.players.keys());
-    room.game.revealIndex = 0;
-    room.game.matchMap = {};
-    room.game.scoredPairs = {}; // reset per ronde
+    // nieuwe ronde start: scores resetten (zoals afgesproken)
+    for (const p of room.players.values()) p.score = 0;
+
+    room.game.question = 1;
+    room.game.questionsPerRound = QUESTIONS_PER_ROUND;
+    room.game.promptPool = shuffle(PROMPTS);
+
+    startNewQuestion(room);
 
     emitRoom(room.code);
   });
@@ -324,7 +353,7 @@ io.on("connection", (socket) => {
 
     // iedereen submitted?
     if (Object.keys(room.game.submissions).length === room.players.size) {
-      // 1) matchMap opbouwen
+      // matchMap bouwen
       room.game.matchMap = {};
       for (const targetId of room.game.revealOrder) {
         room.game.matchMap[targetId] = {};
@@ -337,12 +366,11 @@ io.on("connection", (socket) => {
         }
       }
 
-      // 2) scores automatisch 1x toekennen
-      // score = predictor krijgt punt als predictor matcht target
+      // scores 1x per pair toekennen (per vraag)
       for (const targetId of room.game.revealOrder) {
         for (const predictorId of room.game.revealOrder) {
           if (predictorId === targetId) continue;
-          const key = `r${room.game.round}:${predictorId}->${targetId}`;
+          const key = `r${room.game.round}q${room.game.question}:${predictorId}->${targetId}`;
           if (room.game.scoredPairs[key]) continue;
 
           const isMatch = room.game.matchMap?.[targetId]?.[predictorId] ?? false;
@@ -354,7 +382,6 @@ io.on("connection", (socket) => {
         }
       }
 
-      // 3) reveal state
       room.game.state = "REVEAL";
       room.game.revealIndex = 0;
     }
@@ -362,6 +389,7 @@ io.on("connection", (socket) => {
     emitRoom(room.code);
   });
 
+  // reveal per target speler
   socket.on("hostNextReveal", ({ roomCode }) => {
     const room = getRoom(roomCode);
     if (!room) return;
@@ -376,21 +404,30 @@ io.on("connection", (socket) => {
     emitRoom(room.code);
   });
 
-  socket.on("hostNextRound", ({ roomCode }) => {
+  // vanaf scoreboard naar volgende vraag of nieuwe ronde
+  socket.on("hostNextQuestion", ({ roomCode }) => {
     const room = getRoom(roomCode);
     if (!room) return;
+    if (room.game.state !== "SCOREBOARD") return;
 
-    room.game.round += 1;
-    room.game.state = "LOBBY";
-    room.game.prompt = null;
-    room.game.submissions = {};
-    room.game.revealOrder = [];
-    room.game.revealIndex = 0;
-    room.game.matchMap = {};
-    room.game.scoredPairs = {};
+    if (room.game.question < room.game.questionsPerRound) {
+      room.game.question += 1;
+      startNewQuestion(room);
+    } else {
+      // ronde klaar -> terug naar lobby (ready reset)
+      room.game.round += 1;
+      room.game.question = 0;
+      room.game.prompt = null;
+      room.game.promptPool = [];
+      room.game.submissions = {};
+      room.game.revealOrder = [];
+      room.game.revealIndex = 0;
+      room.game.matchMap = {};
+      room.game.scoredPairs = {};
+      room.game.state = "LOBBY";
 
-    // ready reset
-    for (const p of room.players.values()) p.ready = false;
+      for (const p of room.players.values()) p.ready = false;
+    }
 
     emitRoom(room.code);
   });

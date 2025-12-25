@@ -13,12 +13,13 @@
 
   <div class="header">
     <h1 class="title" id="topTitle">Host scherm</h1>
-    <div class="subtitle">Room: <span id="roomCode"></span> — Ronde <span id="roundNr">1</span></div>
+    <div class="subtitle">Room: <span id="roomCode"></span> — <span id="roundNr">Ronde 1</span></div>
   </div>
 
   <div class="wrap">
     <div class="panel" id="panel">
       <div class="panelInner" id="panelInner">
+
         <!-- LEFT (Lobby only): Join -->
         <div class="card" id="joinCard">
           <div class="joinTop">
@@ -38,7 +39,6 @@
 
           <div class="btnRow">
             <button class="btn" id="startBtn" disabled>Start game</button>
-            <button class="btn btnSecondary" id="nextRoundBtn" style="display:none;">Nieuwe ronde</button>
           </div>
 
           <div class="muted" id="hostHint" style="margin-top:10px;"></div>
@@ -47,6 +47,7 @@
 
         <!-- RIGHT: Main -->
         <div class="card" id="mainCard">
+
           <!-- LOBBY -->
           <div id="viewLobby">
             <div class="rightTop">
@@ -92,6 +93,7 @@
           <!-- SCOREBOARD -->
           <div id="viewScore" style="display:none;">
             <div class="viewTitle">Scoreboard</div>
+
             <table>
               <thead>
                 <tr><th>Speler</th><th>Score</th></tr>
@@ -100,9 +102,10 @@
             </table>
 
             <div style="margin-top:14px;">
-              <button class="btn btnSecondary" id="nextRoundBtn2">Nieuwe ronde</button>
+              <button class="btn btnSecondary" id="nextQuestionBtn">Volgende vraag</button>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -124,15 +127,14 @@
     const socket = io();
     socket.emit("hostSubscribe", { roomCode });
 
+    // Buttons
     const startBtn = document.getElementById("startBtn");
-    const nextRoundBtn = document.getElementById("nextRoundBtn");
-    const nextRoundBtn2 = document.getElementById("nextRoundBtn2");
     const nextRevealBtn = document.getElementById("nextRevealBtn");
+    const nextQuestionBtn = document.getElementById("nextQuestionBtn");
 
     startBtn.onclick = () => socket.emit("hostStartGame", { roomCode });
     nextRevealBtn.onclick = () => socket.emit("hostNextReveal", { roomCode });
-    nextRoundBtn.onclick = () => socket.emit("hostNextRound", { roomCode });
-    nextRoundBtn2.onclick = () => socket.emit("hostNextRound", { roomCode });
+    nextQuestionBtn.onclick = () => socket.emit("hostNextQuestion", { roomCode });
 
     // animation state
     let lastTargetId = null;
@@ -145,7 +147,12 @@
     socket.on("roomState", (state) => {
       document.getElementById("max").textContent = state.maxPlayers;
       document.getElementById("count").textContent = state.players.length;
-      document.getElementById("roundNr").textContent = state.round ?? 1;
+
+      // UX-bonus: ronde + vraag in subtitle
+      document.getElementById("roundNr").textContent =
+        state.question
+          ? `Ronde ${state.round} — Vraag ${state.question}/${state.questionsPerRound}`
+          : `Ronde ${state.round ?? 1}`;
 
       renderSlots(state.players);
 
@@ -157,7 +164,7 @@
       // QR only in lobby
       setLobbyLayout(state.state === "LOBBY");
 
-      // Startknop logic
+      // Startknop (alleen lobby)
       const connected = state.players.filter(p => p.connected);
       const canStart = (state.state === "LOBBY")
         && connected.length >= 2
@@ -173,7 +180,6 @@
       }
 
       if (state.state === "REVEAL") {
-        // data komt server-side mee
         const rd = state.revealData;
         if (!rd) return;
 
@@ -189,9 +195,16 @@
 
       if (state.state === "SCOREBOARD") {
         renderScoreboard(state.players);
+
+        const q = state.question || 0;
+        const total = state.questionsPerRound || 10;
+        const isLastQuestion = q >= total;
+
+        nextQuestionBtn.textContent = isLastQuestion
+          ? "Nieuwe ronde"
+          : `Volgende vraag (${q + 1}/${total})`;
       }
 
-      nextRoundBtn.style.display = (state.state === "SCOREBOARD") ? "inline-block" : "none";
       document.getElementById("hostHint").textContent =
         (state.state === "LOBBY") ? "Tip: iedereen moet Ready zijn (min. 2 spelers) om te starten." : "";
       document.getElementById("errors").textContent = "";
@@ -219,6 +232,7 @@
 
     function renderSlots(players) {
       const wrap = document.getElementById("slots");
+      if (!wrap) return;
       wrap.innerHTML = "";
 
       for (let i = 0; i < 6; i++) {
@@ -256,7 +270,7 @@
         });
     }
 
-    // Reveal animation: 1 predictor at a time
+    // Reveal animation: 1 predictor at a time (5 seconds total)
     async function playRevealPredictors(predictors) {
       playToken++;
       const token = playToken;
@@ -266,20 +280,18 @@
       const predAns = document.getElementById("predAns");
       const pointPop = document.getElementById("pointPop");
 
-      // reset
       stage.classList.remove("fadeIn","fadeOut");
       predName.textContent = "";
       predAns.textContent = "";
       pointPop.classList.remove("pop");
 
-      // Geen predictors (bijv. 1 speler) -> niks te tonen
       if (!predictors || predictors.length === 0) return;
 
-      // timing (ms)
-      const FADE_IN = 260;
-      const SHOW = 850;
-      const POP = 650;
-      const FADE_OUT = 220;
+      // total ~5.0s per predictor
+      const FADE_IN = 300;
+      const SHOW = 3200;
+      const POP = 1200;
+      const FADE_OUT = 300;
 
       for (const p of predictors) {
         if (token !== playToken) return;
@@ -287,15 +299,12 @@
         predName.textContent = `${p.predictorName} voorspelde`;
         predAns.textContent = p.predicted || "(leeg)";
 
-        // fade in
         stage.classList.remove("fadeOut");
         stage.classList.add("fadeIn");
         await wait(FADE_IN);
 
-        // show
         await wait(SHOW);
 
-        // +1 pop bij match
         if (p.match) {
           pointPop.classList.add("pop");
           await wait(POP);
@@ -304,13 +313,11 @@
           await wait(180);
         }
 
-        // fade out
         stage.classList.remove("fadeIn");
         stage.classList.add("fadeOut");
         await wait(FADE_OUT);
       }
 
-      // after last: leave empty (clean)
       if (token !== playToken) return;
       predName.textContent = "";
       predAns.textContent = "";
