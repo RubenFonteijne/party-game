@@ -227,7 +227,7 @@
           const div = document.createElement("div");
           div.className = "predictItem";
           div.innerHTML = `
-            <div class="predictWho">Wat denk ik dat ${escapeHtml(p.name)} invult?</div>
+            <div class="predictWho">Het antwoord van ${escapeHtml(p.name)} is...</div>
             <input class="input" data-predict-id="${p.id}" placeholder="Jouw voorspelling…" maxlength="80"/>
           `;
           wrap.appendChild(div);

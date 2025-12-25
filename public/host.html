@@ -75,14 +75,8 @@
               <div class="muted" id="targetLabel"></div>
               <div class="bigAnswer" id="targetAnswer"></div>
 
-              <div class="predStage" id="predStage">
-                <div class="predLine">
-                  <div class="predName" id="predName"></div>
-                  <div class="predAns" id="predAns"></div>
-                </div>
-
-                <div class="pointPop" id="pointPop">+1</div>
-              </div>
+              <!-- Vervangen: geen animatie meer, maar lijst met voorspellingen -->
+              <div id="predictionsList" style="margin-top:14px;"></div>
 
               <div style="margin-top:14px;">
                 <button class="btn" id="nextRevealBtn">Volgende speler</button>
@@ -136,10 +130,6 @@
     nextRevealBtn.onclick = () => socket.emit("hostNextReveal", { roomCode });
     nextQuestionBtn.onclick = () => socket.emit("hostNextQuestion", { roomCode });
 
-    // animation state
-    let lastTargetId = null;
-    let playToken = 0;
-
     socket.on("errorMessage", (msg) => {
       document.getElementById("errors").textContent = msg;
     });
@@ -186,11 +176,8 @@
         document.getElementById("targetLabel").textContent = `Antwoord van ${rd.targetName}`;
         document.getElementById("targetAnswer").textContent = rd.targetAnswer || "(leeg)";
 
-        // start animatie opnieuw bij nieuwe target
-        if (rd.targetId !== lastTargetId) {
-          lastTargetId = rd.targetId;
-          playRevealPredictors(rd.predictors);
-        }
+        // Nieuw: toon alle voorspellingen direct onder elkaar (geen animatie)
+        renderPredictionsList(rd.predictors);
       }
 
       if (state.state === "SCOREBOARD") {
@@ -270,61 +257,28 @@
         });
     }
 
-    // Reveal animation: 1 predictor at a time (5 seconds total)
-    async function playRevealPredictors(predictors) {
-      playToken++;
-      const token = playToken;
+    // Nieuw: voorspellingen direct als lijst (geen animatie)
+    function renderPredictionsList(predictors) {
+      const wrap = document.getElementById("predictionsList");
+      if (!wrap) return;
 
-      const stage = document.getElementById("predStage");
-      const predName = document.getElementById("predName");
-      const predAns = document.getElementById("predAns");
-      const pointPop = document.getElementById("pointPop");
-
-      stage.classList.remove("fadeIn","fadeOut");
-      predName.textContent = "";
-      predAns.textContent = "";
-      pointPop.classList.remove("pop");
-
-      if (!predictors || predictors.length === 0) return;
-
-      // total ~5.0s per predictor
-      const FADE_IN = 300;
-      const SHOW = 3200;
-      const POP = 1200;
-      const FADE_OUT = 300;
-
-      for (const p of predictors) {
-        if (token !== playToken) return;
-
-        predName.textContent = `${p.predictorName} voorspelde`;
-        predAns.textContent = p.predicted || "(leeg)";
-
-        stage.classList.remove("fadeOut");
-        stage.classList.add("fadeIn");
-        await wait(FADE_IN);
-
-        await wait(SHOW);
-
-        if (p.match) {
-          pointPop.classList.add("pop");
-          await wait(POP);
-          pointPop.classList.remove("pop");
-        } else {
-          await wait(180);
-        }
-
-        stage.classList.remove("fadeIn");
-        stage.classList.add("fadeOut");
-        await wait(FADE_OUT);
+      if (!predictors || predictors.length === 0) {
+        wrap.innerHTML = `<div class="muted">Geen voorspellingen.</div>`;
+        return;
       }
 
-      if (token !== playToken) return;
-      predName.textContent = "";
-      predAns.textContent = "";
-      stage.classList.remove("fadeIn","fadeOut");
-    }
+      wrap.innerHTML = predictors.map(p => {
+        const name = p.predictorName ?? p.name ?? "Onbekend";
+        const ans = (p.predicted ?? p.answer ?? "").toString() || "(leeg)";
+        const plus = p.match ? ` <strong>+1</strong>` : "";
+        return `<div class="predRow">${escapeHtml(name)} — ${escapeHtml(ans)}${plus}</div>`;
+      }).join("");
 
-    function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+      // Styling inline toevoegen als je (nog) geen CSS hebt voor predRow
+      // (Laat dit gerust staan; het breekt niks)
+      wrap.style.display = "grid";
+      wrap.style.gap = "8px";
+    }
 
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, s => ({
