@@ -480,4 +480,67 @@
     .panelInner{ padding: 14px; } /* voor het geval je dit op join hergebruikt */
     .card{ padding: 14px; }
   }
+
+  /* =========================
+   REVEAL PRESENTATION HELPERS
+========================= */
+
+.predStage{
+    position: relative;
+    margin-top: 18px;
+    padding: 12px 12px;
+    border-radius: 16px;
+    background: rgba(0,0,0,.14);
+    border: 1px solid rgba(255,255,255,.08);
+    min-height: 86px;
+    display:flex;
+    align-items:center;
+  }
+  
+  .predLine{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .fadeIn{
+    animation: fadeIn .26s ease forwards;
+  }
+  .fadeOut{
+    animation: fadeOut .22s ease forwards;
+  }
+  
+  @keyframes fadeIn{
+    from{ opacity: 0; transform: translateY(6px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeOut{
+    from{ opacity: 1; transform: translateY(0); }
+    to{ opacity: 0; transform: translateY(-4px); }
+  }
+  
+  /* +1 pop */
+  .pointPop{
+    position:absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 950;
+    font-size: 28px;
+    color: rgba(52,211,153,.95);
+    opacity: 0;
+    text-shadow: 0 0 18px rgba(52,211,153,.18);
+    pointer-events:none;
+  }
+  
+  .pointPop.pop{
+    animation: pointPop .65s ease forwards;
+  }
+  
+  @keyframes pointPop{
+    0%   { opacity: 0; transform: translateY(-50%) translateX(0) scale(.9); }
+    20%  { opacity: 1; transform: translateY(-62%) translateX(0) scale(1); }
+    80%  { opacity: 1; transform: translateY(-76%) translateX(0) scale(1.02); }
+    100% { opacity: 0; transform: translateY(-92%) translateX(0) scale(1.02); }
+  }
   
