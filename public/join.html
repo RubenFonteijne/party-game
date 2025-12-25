@@ -106,6 +106,9 @@
     let currentPlayers = [];
     let submitted = false;
 
+    // NEW: track last question so we can reset UI when a new question starts
+    let lastQuestionKey = null;
+
     // join
     const nameEl = document.getElementById("name");
     document.getElementById("joinBtn").onclick = () => {
@@ -183,11 +186,22 @@
             ? "Ready! ✅ Wachten op host…"
             : "Niet ready. Klik ready als je wil starten.";
         }
+
+        // reset everything when going back to lobby
         submitted = false;
+        lastQuestionKey = null;
         resetAnswerUI();
       }
 
       if (state.state === "ANSWERING") {
+        // NEW: detect new question and reset old answers/predictions
+        const questionKey = `${state.round || 1}-${state.question || 0}`;
+        if (questionKey !== lastQuestionKey) {
+          lastQuestionKey = questionKey;
+          submitted = false;
+          resetAnswerUI();
+        }
+
         show("stepAnswer");
         buildPredictFields(currentPlayers, playerId);
 

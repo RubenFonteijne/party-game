@@ -184,7 +184,10 @@ function snapshot(room, isHost) {
 
   if (!isHost) return base;
 
-  // revealData voor host animatie
+  // Host extra: alleen IDs van players die ingestuurd hebben (geen antwoorden)
+  const submittedIds = Object.keys(room.game.submissions || {});
+
+  // revealData voor host
   let revealData = null;
   if (room.game.state === "REVEAL") {
     const order = room.game.revealOrder || [];
@@ -213,7 +216,8 @@ function snapshot(room, isHost) {
   return {
     ...base,
     prompt: room.game.prompt,
-    revealData
+    revealData,
+    submittedIds
   };
 }
 
@@ -320,7 +324,7 @@ io.on("connection", (socket) => {
     const allReady = connected.every(p => p.ready);
     if (!allReady) return;
 
-    // nieuwe ronde start: scores resetten (zoals afgesproken)
+    // nieuwe ronde start: scores resetten
     for (const p of room.players.values()) p.score = 0;
 
     room.game.question = 1;

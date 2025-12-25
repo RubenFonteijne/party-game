@@ -5,13 +5,78 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Party Game — Host</title>
   <link rel="stylesheet" href="/css/style.css">
+
+  <style>
+    /* Presentatie ANSWERING view: prompt exact in het midden */
+    #viewAnswering {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 28px;
+    }
+
+    #centerPrompt {
+      font-size: clamp(34px, 5vw, 72px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      max-width: 1200px;
+    }
+
+    /* Onderaan: rondjes met namen (alleen spelers) */
+    #answeringSlots {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      padding: 0 16px;
+      z-index: 20;
+      max-width: 1200px;
+      width: 100%;
+      pointer-events: none;
+    }
+
+    .slot.slotMini {
+      width: 86px;
+      height: 86px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .slot.slotMini .slotName {
+      font-size: 14px;
+      line-height: 1.1;
+      max-width: 76px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Groene glow bij ingestuurd */
+    .slotSubmitted {
+      box-shadow:
+        0 0 0 2px rgba(64, 255, 128, 0.35),
+        0 0 22px rgba(64, 255, 128, 0.35);
+    }
+  </style>
 </head>
+
 <body>
   <div class="streak"></div>
   <div class="streak s2"></div>
   <div class="streak s3"></div>
 
-  <div class="header">
+  <div class="header" id="topHeader">
     <h1 class="title" id="topTitle">Host scherm</h1>
     <div class="subtitle">Room: <span id="roomCode"></span> — <span id="roundNr">Ronde 1</span></div>
   </div>
@@ -60,14 +125,15 @@
             <div class="slots" id="slots"></div>
           </div>
 
-          <!-- ANSWERING -->
+          <!-- ANSWERING (presentatie) -->
           <div id="viewAnswering" style="display:none;">
-            <div class="viewTitle">Invullen…</div>
-            <div class="muted">Telefoons: beantwoord de stelling op het scherm.</div>
-            <div class="muted" style="margin-top:10px;"><strong id="progress"></strong></div>
+            <div id="centerPrompt">…</div>
           </div>
 
-          <!-- REVEAL (presentation) -->
+          <!-- Onderaan: spelers rondjes tijdens answering -->
+          <div id="answeringSlots" style="display:none;"></div>
+
+          <!-- REVEAL -->
           <div id="viewReveal" style="display:none;">
             <div class="viewTitle">Reveal</div>
 
@@ -75,7 +141,6 @@
               <div class="muted" id="targetLabel"></div>
               <div class="bigAnswer" id="targetAnswer"></div>
 
-              <!-- Vervangen: geen animatie meer, maar lijst met voorspellingen -->
               <div id="predictionsList" style="margin-top:14px;"></div>
 
               <div style="margin-top:14px;">
@@ -138,7 +203,6 @@
       document.getElementById("max").textContent = state.maxPlayers;
       document.getElementById("count").textContent = state.players.length;
 
-      // UX-bonus: ronde + vraag in subtitle
       document.getElementById("roundNr").textContent =
         state.question
           ? `Ronde ${state.round} — Vraag ${state.question}/${state.questionsPerRound}`
@@ -146,15 +210,16 @@
 
       renderSlots(state.players);
 
-      // Title: prompt zodra game gestart is
       const topTitle = document.getElementById("topTitle");
       if (state.state === "LOBBY") topTitle.textContent = "Host scherm";
       else topTitle.textContent = state.prompt || "…";
 
-      // QR only in lobby
+      // Midden prompt in answering view
+      const centerPrompt = document.getElementById("centerPrompt");
+      if (centerPrompt) centerPrompt.textContent = state.prompt || "…";
+
       setLobbyLayout(state.state === "LOBBY");
 
-      // Startknop (alleen lobby)
       const connected = state.players.filter(p => p.connected);
       const canStart = (state.state === "LOBBY")
         && connected.length >= 2
@@ -165,8 +230,7 @@
       showView(state.state);
 
       if (state.state === "ANSWERING") {
-        document.getElementById("progress").textContent =
-          `${state.submissionsCount || 0} / ${state.players.length} antwoorden binnen`;
+        renderAnsweringSlots(state.players, state);
       }
 
       if (state.state === "REVEAL") {
@@ -176,7 +240,6 @@
         document.getElementById("targetLabel").textContent = `Antwoord van ${rd.targetName}`;
         document.getElementById("targetAnswer").textContent = rd.targetAnswer || "(leeg)";
 
-        // Nieuw: toon alle voorspellingen direct onder elkaar (geen animatie)
         renderPredictionsList(rd.predictors);
       }
 
@@ -211,8 +274,13 @@
     }
 
     function showView(gameState) {
+      // Header verbergen in ANSWERING voor clean presentatie
+      const topHeader = document.getElementById("topHeader");
+      topHeader.style.display = (gameState === "ANSWERING") ? "none" : "block";
+
       document.getElementById("viewLobby").style.display = (gameState === "LOBBY") ? "block" : "none";
-      document.getElementById("viewAnswering").style.display = (gameState === "ANSWERING") ? "block" : "none";
+      document.getElementById("viewAnswering").style.display = (gameState === "ANSWERING") ? "flex" : "none";
+      document.getElementById("answeringSlots").style.display = (gameState === "ANSWERING") ? "flex" : "none";
       document.getElementById("viewReveal").style.display = (gameState === "REVEAL") ? "block" : "none";
       document.getElementById("viewScore").style.display = (gameState === "SCOREBOARD") ? "block" : "none";
     }
@@ -222,6 +290,7 @@
       if (!wrap) return;
       wrap.innerHTML = "";
 
+      // Lobby: 6 plekken (zoals origineel)
       for (let i = 0; i < 6; i++) {
         const p = players[i];
         const div = document.createElement("div");
@@ -244,6 +313,44 @@
       }
     }
 
+    function renderAnsweringSlots(players, state) {
+      const wrap = document.getElementById("answeringSlots");
+      if (!wrap) return;
+
+      wrap.innerHTML = "";
+
+      // Alleen echte spelers
+      players.forEach(p => {
+        const div = document.createElement("div");
+
+        const baseClass = !p.connected ? "slotOffline" : "slotReady";
+        const isSubmitted = getSubmittedFlag(p, state);
+
+        div.className = `slot slotMini ${baseClass} ${isSubmitted ? "slotSubmitted" : ""}`;
+        div.title = isSubmitted ? "Ingestuurd ✅" : "Nog niet ingestuurd";
+        div.innerHTML = `<div class="slotName">${escapeHtml(p.name)}</div>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    function getSubmittedFlag(p, state) {
+      if (!p) return false;
+
+      // NEW: server stuurt submittedIds naar host
+      if (state && Array.isArray(state.submittedIds) && state.submittedIds.includes(p.id)) return true;
+
+      // fallback (voor het geval je later nog andere structuren gebruikt)
+      if (p.submitted === true) return true;
+      if (p.hasSubmitted === true) return true;
+      if (p.answered === true) return true;
+      if (p.didSubmit === true) return true;
+
+      if (state && state.submissions && p.id && state.submissions[p.id]) return true;
+      if (state && state.answers && p.id && state.answers[p.id]) return true;
+
+      return false;
+    }
+
     function renderScoreboard(players) {
       const rows = document.getElementById("scoreRows");
       rows.innerHTML = "";
@@ -257,7 +364,7 @@
         });
     }
 
-    // Nieuw: voorspellingen direct als lijst (geen animatie)
+    // Reveal: alle voorspellingen direct onder elkaar (geen animatie)
     function renderPredictionsList(predictors) {
       const wrap = document.getElementById("predictionsList");
       if (!wrap) return;
@@ -274,8 +381,6 @@
         return `<div class="predRow">${escapeHtml(name)} — ${escapeHtml(ans)}${plus}</div>`;
       }).join("");
 
-      // Styling inline toevoegen als je (nog) geen CSS hebt voor predRow
-      // (Laat dit gerust staan; het breekt niks)
       wrap.style.display = "grid";
       wrap.style.gap = "8px";
     }
