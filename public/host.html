@@ -6,38 +6,96 @@
   <title>Party Game — Host</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 20px; }
-    .wrap { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
-    #qr { width: 320px; height: 320px; object-fit: contain; background: #fafafa; border-radius: 12px; }
-    .muted { color: #666; }
-    .players li { margin: 8px 0; }
-    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #ddd; }
+    .grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    .card { border: 1px solid #ddd; border-radius: 14px; padding: 16px; }
+    #qr { width: 340px; height: 340px; background:#fafafa; border-radius: 12px; object-fit: contain; }
+    .muted { color:#666; }
+    .pill { display:inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #ddd; margin-left: 8px; }
     .ok { border-color: #2ecc71; }
     .no { border-color: #f39c12; }
     .off { border-color: #e74c3c; }
-    code { background: #f5f5f5; padding: 2px 6px; border-radius: 6px; }
+    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #222; background:#222; color:#fff; cursor:pointer; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .btnRow { display:flex; gap:10px; flex-wrap:wrap; }
+    .big { font-size: 42px; line-height: 1.05; margin: 10px 0 2px; }
+    .prompt { font-size: 28px; line-height: 1.15; margin: 0 0 12px; }
+    .revealBox { border: 1px solid #eee; border-radius: 14px; padding: 14px; background:#fcfcfc; }
+    .pred { display:flex; justify-content: space-between; gap: 12px; align-items:center; padding: 10px 0; border-top: 1px solid #eee; }
+    .pred:first-child { border-top: none; }
+    .predName { font-weight: 600; }
+    .predAns { color:#333; }
+    .actions { display:flex; gap:8px; }
+    .mini { padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; background:#fff; color:#111; }
+    .mini.ok { border-color:#2ecc71; }
+    .mini.no { border-color:#e74c3c; }
+    .mini.neu { border-color:#999; }
+    code { background:#f5f5f5; padding: 2px 6px; border-radius: 6px; }
+    .sep { height: 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { text-align:left; padding: 10px 8px; border-bottom: 1px solid #eee; }
+    th { color:#666; font-weight: 600; }
   </style>
 </head>
 <body>
-  <h1>Host scherm</h1>
-  <p class="muted">Laat spelers de QR scannen om mee te doen.</p>
+    <h1>Host scherm (v1.3)</h1>
+  <p class="muted">Room: <strong id="roomCode"></strong> — Ronde <strong id="roundNr">1</strong></p>
 
-  <div class="wrap">
-    <div class="card">
-      <h2>Room: <span id="roomCode"></span></h2>
+  <div class="grid">
+    <div class="card" id="leftCard">
+      <h2>Join</h2>
       <img id="qr" alt="QR code" />
       <p class="muted">Join link:</p>
       <p><code id="joinLink"></code></p>
-      <p class="muted" style="margin-top:12px">
-        Tip: Open dit host-scherm via je laptop IP (niet localhost), zodat de QR meteen werkt op telefoons.
-      </p>
+      <div class="sep"></div>
+      <div class="btnRow">
+        <button id="startBtn" disabled>Start game</button>
+        <button id="nextRoundBtn" style="display:none;">Nieuwe ronde</button>
+      </div>
+      <p class="muted" id="hostHint" style="margin-top:10px;"></p>
+      <p class="muted" id="errors"></p>
     </div>
 
-    <div class="card">
-      <h2>Spelers</h2>
-      <p class="muted"><span id="count"></span> / <span id="max"></span></p>
-      <ul class="players" id="players"></ul>
-      <p class="muted" id="errors"></p>
+    <div class="card" id="mainCard">
+      <div id="viewLobby">
+        <h2>Spelers</h2>
+        <p class="muted"><span id="count">0</span> / <span id="max">6</span></p>
+        <ul id="players"></ul>
+        <p class="muted">Iedereen ready? Dan kun je starten.</p>
+      </div>
+
+      <div id="viewAnswering" style="display:none;">
+        <h2>Stelling</h2>
+        <p class="prompt" id="promptText"></p>
+        <p class="muted">Telefoons: beantwoord de stelling op het scherm.</p>
+        <p class="muted"><strong id="progress"></strong></p>
+      </div>
+
+      <div id="viewReveal" style="display:none;">
+        <h2>Reveal</h2>
+        <p class="prompt" id="promptText2"></p>
+
+        <div class="revealBox">
+          <div class="muted" id="targetLabel"></div>
+          <div class="big" id="targetAnswer"></div>
+
+          <div id="predictions"></div>
+
+          <div class="sep"></div>
+          <button id="nextRevealBtn">Volgende speler</button>
+        </div>
+      </div>
+
+      <div id="viewScore" style="display:none;">
+        <h2>Scoreboard</h2>
+        <table>
+          <thead>
+            <tr><th>Speler</th><th>Score</th></tr>
+          </thead>
+          <tbody id="scoreRows"></tbody>
+        </table>
+        <div class="sep"></div>
+        <button id="nextRoundBtn2">Nieuwe ronde</button>
+      </div>
     </div>
   </div>
 
@@ -49,40 +107,180 @@
     const joinUrl = `${location.origin}/join/${roomCode}`;
     document.getElementById("joinLink").textContent = joinUrl;
 
-    // QR ophalen (server-side)
     fetch(`/api/qr?text=${encodeURIComponent(joinUrl)}`)
       .then(r => r.json())
-      .then(data => {
-        if (data.dataUrl) document.getElementById("qr").src = data.dataUrl;
-      });
+      .then(data => { if (data.dataUrl) document.getElementById("qr").src = data.dataUrl; });
 
     const socket = io();
     socket.emit("hostSubscribe", { roomCode });
 
-    socket.on("roomState", (state) => {
-      document.getElementById("max").textContent = state.maxPlayers;
-      document.getElementById("count").textContent = state.players.length;
+    const startBtn = document.getElementById("startBtn");
+    const nextRoundBtn = document.getElementById("nextRoundBtn");
+    const nextRoundBtn2 = document.getElementById("nextRoundBtn2");
+    const nextRevealBtn = document.getElementById("nextRevealBtn");
 
-      const ul = document.getElementById("players");
-      ul.innerHTML = "";
-
-      state.players.forEach((p, idx) => {
-        const li = document.createElement("li");
-
-        const status = p.connected ? (p.ready ? "Ready" : "Niet ready") : "Offline";
-        const cls = p.connected ? (p.ready ? "ok" : "no") : "off";
-
-        li.innerHTML = `
-          <strong>${idx + 1}. ${escapeHtml(p.name)}</strong>
-          <span class="pill ${cls}">${status}</span>
-        `;
-        ul.appendChild(li);
-      });
-    });
+    startBtn.onclick = () => socket.emit("hostStartGame", { roomCode });
+    nextRevealBtn.onclick = () => socket.emit("hostNextReveal", { roomCode });
+    nextRoundBtn.onclick = () => socket.emit("hostNextRound", { roomCode });
+    nextRoundBtn2.onclick = () => socket.emit("hostNextRound", { roomCode });
 
     socket.on("errorMessage", (msg) => {
       document.getElementById("errors").textContent = msg;
     });
+
+    socket.on("roomState", (state) => {
+      document.getElementById("max").textContent = state.maxPlayers;
+      document.getElementById("count").textContent = state.players.length;
+      document.getElementById("roundNr").textContent = state.round ?? 1;
+
+      renderPlayers(state.players);
+
+      // Startknop conditions
+      const connected = state.players.filter(p => p.connected);
+      const canStart = (state.state === "LOBBY")
+        && connected.length >= 2
+        && connected.every(p => p.ready);
+
+      startBtn.disabled = !canStart;
+
+      // Views
+      showView(state.state);
+
+      if (state.state === "ANSWERING") {
+        document.getElementById("promptText").textContent = state.prompt || "";
+        document.getElementById("progress").textContent =
+          `${state.submissionsCount || 0} / ${state.players.length} antwoorden binnen`;
+      }
+
+      if (state.state === "REVEAL") {
+        document.getElementById("promptText2").textContent = state.prompt || "";
+
+        const order = state.revealOrder || [];
+        const idx = state.revealIndex || 0;
+        const targetId = order[idx];
+
+        const target = state.players.find(p => p.id === targetId);
+        const submissions = state.submissions || {};
+        const approvals = state.approvals || {};
+
+        const targetSelf = submissions?.[targetId]?.self ?? "";
+
+        document.getElementById("targetLabel").textContent = target
+          ? `Antwoord van ${target.name}`
+          : "Antwoord";
+
+        document.getElementById("targetAnswer").textContent = targetSelf || "(leeg)";
+
+        renderPredictions(state.players, submissions, approvals, targetId, target?.name || "");
+      }
+
+      if (state.state === "SCOREBOARD") {
+        renderScoreboard(state.players);
+      }
+
+      // buttons visibility
+      nextRoundBtn.style.display = (state.state === "SCOREBOARD") ? "inline-block" : "none";
+      document.getElementById("hostHint").textContent =
+        (state.state === "LOBBY") ? "Tip: iedereen moet Ready zijn (min. 2 spelers) om te starten." : "";
+    });
+
+    function showView(gameState) {
+      const lobby = document.getElementById("viewLobby");
+      const ans = document.getElementById("viewAnswering");
+      const rev = document.getElementById("viewReveal");
+      const score = document.getElementById("viewScore");
+
+      lobby.style.display = (gameState === "LOBBY") ? "block" : "none";
+      ans.style.display = (gameState === "ANSWERING") ? "block" : "none";
+      rev.style.display = (gameState === "REVEAL") ? "block" : "none";
+      score.style.display = (gameState === "SCOREBOARD") ? "block" : "none";
+    }
+
+    function renderPlayers(players) {
+      const ul = document.getElementById("players");
+      ul.innerHTML = "";
+
+      players.forEach((p, idx) => {
+        const li = document.createElement("li");
+        const status = p.connected ? (p.ready ? "Ready" : "Niet ready") : "Offline";
+        const cls = p.connected ? (p.ready ? "ok" : "no") : "off";
+        li.innerHTML = `<strong>${idx+1}. ${escapeHtml(p.name)}</strong><span class="pill ${cls}">${status}</span>`;
+        ul.appendChild(li);
+      });
+    }
+
+    function renderPredictions(players, submissions, approvals, targetId, targetName) {
+      const wrap = document.getElementById("predictions");
+      wrap.innerHTML = "";
+
+      const targetApprovals = approvals?.[targetId] || {};
+
+      players
+        .filter(p => p.id !== targetId)
+        .forEach(predictor => {
+          const predicted = submissions?.[predictor.id]?.predicts?.[targetId] ?? "";
+          const current = (predictor.id in targetApprovals) ? targetApprovals[predictor.id] : null;
+
+          const row = document.createElement("div");
+          row.className = "pred";
+
+          const left = document.createElement("div");
+          left.innerHTML = `<div class="predName">${escapeHtml(predictor.name)} voorspelde</div>
+                            <div class="predAns">${escapeHtml(predicted || "(leeg)")}</div>`;
+
+          const actions = document.createElement("div");
+          actions.className = "actions";
+
+          const btnYes = document.createElement("button");
+          btnYes.className = "mini ok";
+          btnYes.textContent = "✅";
+          btnYes.onclick = () => socket.emit("hostSetApproval", {
+            roomCode, targetId, predictorId: predictor.id, approved: true
+          });
+
+          const btnNo = document.createElement("button");
+          btnNo.className = "mini no";
+          btnNo.textContent = "❌";
+          btnNo.onclick = () => socket.emit("hostSetApproval", {
+            roomCode, targetId, predictorId: predictor.id, approved: false
+          });
+
+          const btnReset = document.createElement("button");
+          btnReset.className = "mini neu";
+          btnReset.textContent = "↩︎";
+          btnReset.title = "Reset";
+          btnReset.onclick = () => socket.emit("hostSetApproval", {
+            roomCode, targetId, predictorId: predictor.id, approved: null
+          });
+
+          // visuele hint welke staat actief is
+          btnYes.style.opacity = (current === true) ? "1" : "0.5";
+          btnNo.style.opacity = (current === false) ? "1" : "0.5";
+          btnReset.style.opacity = (current === null) ? "1" : "0.5";
+
+          actions.appendChild(btnYes);
+          actions.appendChild(btnNo);
+          actions.appendChild(btnReset);
+
+          row.appendChild(left);
+          row.appendChild(actions);
+
+          wrap.appendChild(row);
+        });
+    }
+
+    function renderScoreboard(players) {
+      const rows = document.getElementById("scoreRows");
+      rows.innerHTML = "";
+
+      [...players]
+        .sort((a,b) => (b.score||0) - (a.score||0))
+        .forEach(p => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${escapeHtml(p.name)}</td><td>${p.score || 0}</td>`;
+          rows.appendChild(tr);
+        });
+    }
 
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, s => ({

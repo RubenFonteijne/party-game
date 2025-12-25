@@ -6,13 +6,16 @@
   <title>Party Game — Join</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 18px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 520px; margin: 0 auto; }
-    input { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; }
+    .card { border: 1px solid #ddd; border-radius: 14px; padding: 16px; max-width: 560px; margin: 0 auto; }
+    .muted { color:#666; }
+    input { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; margin-top: 6px; }
     button { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #222; background: #222; color: #fff; margin-top: 10px; }
-    button.secondary { background: #fff; color: #222; }
-    .muted { color: #666; }
-    .error { color: #c0392b; margin-top: 10px; }
-    .ok { color: #2c7; }
+    button.secondary { background:#fff; color:#111; border-color:#ddd; }
+    .error { color:#c0392b; margin-top: 10px; }
+    .ok { color:#2c7; }
+    .field { margin-top: 14px; }
+    .row { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+    .small { font-size: 13px; }
   </style>
 </head>
 <body>
@@ -27,11 +30,31 @@
       <p class="error" id="joinError"></p>
     </div>
 
-    <div id="stepReady" style="display:none">
-      <p class="ok">Je bent verbonden als <strong id="myName"></strong>.</p>
+    <div id="stepLobby" style="display:none;">
+      <p class="ok">Verbonden als <strong id="myName"></strong>.</p>
       <button id="readyBtn">Ik ben ready ✅</button>
-      <button id="unreadyBtn" class="secondary" style="display:none">Toch niet ready</button>
+      <button id="unreadyBtn" class="secondary" style="display:none;">Toch niet ready</button>
       <p class="muted" id="status"></p>
+    </div>
+
+    <div id="stepAnswer" style="display:none;">
+      <p class="muted"><strong>Beantwoord de stelling op het scherm</strong></p>
+      <div class="field">
+        <label>Mijn antwoord</label>
+        <input id="selfAnswer" placeholder="Typ jouw antwoord..." maxlength="80"/>
+      </div>
+
+      <div class="field" id="predictFields"></div>
+
+      <button id="submitBtn">Versturen</button>
+      <button id="editBtn" class="secondary" style="display:none;">Aanpassen</button>
+
+      <p class="muted small" id="answerHint"></p>
+    </div>
+
+    <div id="stepWait" style="display:none;">
+      <p class="muted"><strong>Even wachten…</strong></p>
+      <p class="muted" id="waitText">Host toont zo de antwoorden op het scherm.</p>
     </div>
   </div>
 
@@ -41,30 +64,34 @@
     document.getElementById("roomCode").textContent = roomCode;
 
     const socket = io();
+
     let playerId = null;
+    let myName = "";
+    let currentPlayers = [];
+    let submitted = false;
 
+    // join
     const nameEl = document.getElementById("name");
-    const joinBtn = document.getElementById("joinBtn");
-    const joinError = document.getElementById("joinError");
-
-    joinBtn.onclick = () => {
-      joinError.textContent = "";
-      const name = nameEl.value.trim();
-      socket.emit("joinRoom", { roomCode, name });
+    document.getElementById("joinBtn").onclick = () => {
+      document.getElementById("joinError").textContent = "";
+      socket.emit("joinRoom", { roomCode, name: nameEl.value.trim() });
     };
 
     socket.on("joinError", (msg) => {
-      joinError.textContent = msg;
+      document.getElementById("joinError").textContent = msg;
     });
 
     socket.on("joined", ({ playerId: pid, name }) => {
       playerId = pid;
+      myName = name;
+
       document.getElementById("stepName").style.display = "none";
-      document.getElementById("stepReady").style.display = "block";
-      document.getElementById("myName").textContent = name;
+      document.getElementById("stepLobby").style.display = "block";
+      document.getElementById("myName").textContent = myName;
       document.getElementById("status").textContent = "Wachten tot iedereen ready is…";
     });
 
+    // ready toggle
     const readyBtn = document.getElementById("readyBtn");
     const unreadyBtn = document.getElementById("unreadyBtn");
 
@@ -80,14 +107,114 @@
       readyBtn.style.display = "block";
     };
 
+    // submit
+    const submitBtn = document.getElementById("submitBtn");
+    const editBtn = document.getElementById("editBtn");
+
+    submitBtn.onclick = () => {
+      const self = document.getElementById("selfAnswer").value.trim();
+
+      const predicts = {};
+      document.querySelectorAll("[data-predict-id]").forEach(inp => {
+        predicts[inp.getAttribute("data-predict-id")] = inp.value.trim();
+      });
+
+      socket.emit("submitAnswers", { roomCode, playerId, self, predicts });
+      submitted = true;
+
+      submitBtn.style.display = "none";
+      editBtn.style.display = "block";
+      document.getElementById("answerHint").textContent = "Verstuurd ✅ Wachten op de rest…";
+    };
+
+    editBtn.onclick = () => {
+      // MVP: laat bewerken toe door opnieuw te submitten (overschrijft server submission)
+      submitted = false;
+      submitBtn.style.display = "block";
+      editBtn.style.display = "none";
+      document.getElementById("answerHint").textContent = "";
+    };
+
+    // room state
     socket.on("roomState", (state) => {
-      // klein feedbackje voor speler
-      const me = state.players.find(p => p.id === playerId);
-      if (me) {
-        document.getElementById("status").textContent =
-          me.ready ? "Ready! ✅ Wachten op anderen…" : "Niet ready. Zet jezelf ready als je wil starten.";
+      currentPlayers = state.players || [];
+
+      if (!playerId) return;
+
+      const me = currentPlayers.find(p => p.id === playerId);
+
+      // schermen wisselen op basis van game state
+      if (state.state === "LOBBY") {
+        show("stepLobby");
+        if (me) {
+          document.getElementById("status").textContent = me.ready
+            ? "Ready! ✅ Wachten op host…"
+            : "Niet ready. Klik ready als je wil starten.";
+        }
+        submitted = false;
+        resetAnswerUI();
+      }
+
+      if (state.state === "ANSWERING") {
+        show("stepAnswer");
+        buildPredictFields(currentPlayers, playerId);
+
+        if (submitted) {
+          submitBtn.style.display = "none";
+          editBtn.style.display = "block";
+          document.getElementById("answerHint").textContent = "Verstuurd ✅ Wachten op de rest…";
+        } else {
+          submitBtn.style.display = "block";
+          editBtn.style.display = "none";
+          document.getElementById("answerHint").textContent = "";
+        }
+      }
+
+      if (state.state === "REVEAL" || state.state === "SCOREBOARD") {
+        show("stepWait");
+        document.getElementById("waitText").textContent =
+          (state.state === "REVEAL")
+            ? "Host toont nu de antwoorden op het scherm…"
+            : "Scoreboard op het scherm!";
       }
     });
+
+    function show(id) {
+      ["stepName", "stepLobby", "stepAnswer", "stepWait"].forEach(x => {
+        document.getElementById(x).style.display = (x === id) ? "block" : "none";
+      });
+    }
+
+    function buildPredictFields(players, myId) {
+      const wrap = document.getElementById("predictFields");
+      wrap.innerHTML = "";
+
+      players
+        .filter(p => p.id !== myId)
+        .forEach(p => {
+          const div = document.createElement("div");
+          div.className = "row";
+          div.innerHTML = `
+            <label>Wat denk ik dat <strong>${escapeHtml(p.name)}</strong> invult?</label>
+            <input data-predict-id="${p.id}" placeholder="Jouw voorspelling..." maxlength="80"/>
+          `;
+          wrap.appendChild(div);
+        });
+    }
+
+    function resetAnswerUI() {
+      document.getElementById("selfAnswer").value = "";
+      document.getElementById("predictFields").innerHTML = "";
+      document.getElementById("answerHint").textContent = "";
+      submitBtn.style.display = "block";
+      editBtn.style.display = "none";
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[s]));
+    }
   </script>
 </body>
 </html>
