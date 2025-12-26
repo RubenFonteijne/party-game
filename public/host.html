@@ -459,7 +459,7 @@
         const answerText = rd.targetAnswer || "(leeg)";
         if (isTrueFalse) {
           const isTrue = answerText === "true" || answerText === "TRUE";
-          document.getElementById("targetAnswer").innerHTML = `<span class="trueFalseAnswer ${isTrue ? 'true' : 'false'}">${isTrue ? 'TRUE' : 'FALSE'}</span>`;
+          document.getElementById("targetAnswer").innerHTML = `<span class="trueFalseAnswer ${isTrue ? 'true' : 'false'}">${isTrue ? 'Gedaan' : 'Niet gedaan'}</span>`;
         } else {
           document.getElementById("targetAnswer").textContent = answerText;
         }
@@ -615,7 +615,7 @@
         
         if (isTrueFalse) {
           const isTrue = ans === "true" || ans === "TRUE";
-          return `<div class="predRow">${escapeHtml(name)} — <span class="trueFalseBadge ${isTrue ? 'true' : 'false'}">${isTrue ? 'TRUE' : 'FALSE'}</span>${plus}</div>`;
+          return `<div class="predRow">${escapeHtml(name)} — <span class="trueFalseBadge ${isTrue ? 'true' : 'false'}">${isTrue ? 'Gedaan' : 'Niet gedaan'}</span>${plus}</div>`;
         } else {
           return `<div class="predRow">${escapeHtml(name)} — ${escapeHtml(ans)}${plus}</div>`;
         }

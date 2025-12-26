@@ -481,13 +481,17 @@
     padding: 0;
     background: transparent;
     border: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
   
   .predictWho{
     font-weight: 800;
     font-size: inherit;
-    margin: 0 0 6px;
+    margin: 0;
     color: rgba(255,255,255,.88);
+    min-width: 100px;
   }
   
   .btnFull{
@@ -609,7 +613,7 @@
   .toggleSwitch {
     position: relative;
     display: flex;
-    width: 200px;
+    width: 240px;
     height: 48px;
     background: rgba(0,0,0,.28);
     border: 1px solid rgba(255,255,255,.14);
@@ -626,9 +630,9 @@
   }
 
   .toggleSwitch.active {
-    background: linear-gradient(90deg, rgba(52,211,153,.25), rgba(52,211,153,.15));
-    border-color: rgba(52,211,153,.55);
-    box-shadow: 0 0 0 1px rgba(52,211,153,.25) inset, 0 0 22px rgba(52,211,153,.16);
+    background: rgba(0,0,0,.28);
+    border-color: rgba(110,231,255,.55);
+    box-shadow: 0 0 0 1px rgba(110,231,255,.25) inset, 0 0 22px rgba(110,231,255,.16);
   }
 
   .toggleOption {
@@ -637,26 +641,16 @@
     align-items: center;
     justify-content: center;
     font-weight: 900;
-    font-size: 16px;
+    font-size: 14px;
     transition: all 0.2s ease;
     position: relative;
     z-index: 1;
-  }
-
-  .toggleOption:first-child {
     color: rgba(255,255,255,.4);
+    padding: 0 8px;
   }
 
-  .toggleOption:last-child {
-    color: rgba(255,255,255,.4);
-  }
-
-  .toggleSwitch.active .toggleOption:first-child {
+  .toggleOption.selected {
     color: rgba(0,0,0,.95);
-  }
-
-  .toggleSwitch:not(.active) .toggleOption:last-child {
-    color: rgba(255,255,255,.9);
   }
 
   .toggleSwitch::before {
@@ -666,7 +660,7 @@
     top: 0;
     width: 50%;
     height: 100%;
-    background: linear-gradient(90deg, rgba(110,231,255,.85), rgba(167,139,250,.85));
+    background: rgba(0,0,0,.45);
     border-radius: 13px 0 0 13px;
     transition: transform 0.2s ease;
     z-index: 0;
@@ -674,5 +668,6 @@
 
   .toggleSwitch.active::before {
     transform: translateX(100%);
+    background: linear-gradient(90deg, rgba(110,231,255,.85), rgba(167,139,250,.85));
     border-radius: 0 13px 13px 0;
   }

@@ -272,9 +272,9 @@
         selfToggleContainer.style.display = "block";
         
         if (!document.getElementById("selfToggle")) {
-          // Check if we have a saved value
-          const savedValue = selfAnswerInput.value === "true" || selfAnswerInput.value === "TRUE";
-          selfToggleContainer.innerHTML = createToggle("selfToggle", "Mijn antwoord", savedValue);
+          // Check if we have a saved value, default to false
+          const savedValue = selfAnswerInput.value === "true" || selfAnswerInput.value === "TRUE" ? true : false;
+          selfToggleContainer.innerHTML = createToggle("selfToggle", "", savedValue);
           const toggle = document.getElementById("selfToggle");
           if (toggle) {
             toggle.addEventListener("click", () => toggleTrueFalse(toggle));
@@ -389,8 +389,8 @@
         <div class="toggleWrapper">
           ${label ? `<div class="toggleLabel">${label}</div>` : ""}
           <div class="toggleSwitch ${isTrue ? 'active' : ''}" id="${id}" ${dataAttr} data-value="${isTrue}">
-            <div class="toggleOption ${isTrue ? 'selected' : ''}">TRUE</div>
-            <div class="toggleOption ${!isTrue ? 'selected' : ''}">FALSE</div>
+            <div class="toggleOption ${!isTrue ? 'selected' : ''}">Niet gedaan</div>
+            <div class="toggleOption ${isTrue ? 'selected' : ''}">Gedaan</div>
           </div>
         </div>
       `;
