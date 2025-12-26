@@ -62,9 +62,10 @@
             <div class="kicker"><strong>Beantwoord de stelling op het scherm.</strong></div>
 
             <div class="formStack">
-              <div>
+              <div id="selfAnswerContainer">
                 <label class="label" for="selfAnswer">Mijn antwoord</label>
                 <input class="input" id="selfAnswer" placeholder="Typ jouw antwoord…" maxlength="80"/>
+                <div id="selfToggleContainer" style="display:none;"></div>
               </div>
 
               <div>
@@ -152,21 +153,31 @@
     const editBtn = document.getElementById("editBtn");
 
     submitBtn.onclick = () => {
-      const self = document.getElementById("selfAnswer").value.trim();
+      let self;
+      if (currentTheme === "18+") {
+        const selfToggle = document.getElementById("selfToggle");
+        self = selfToggle ? (selfToggle.dataset.value === "true" ? "true" : "false") : "false";
+      } else {
+        self = document.getElementById("selfAnswer").value.trim();
+      }
 
       const predicts = {};
-      document.querySelectorAll("[data-predict-id]").forEach(inp => {
-        predicts[inp.getAttribute("data-predict-id")] = inp.value.trim();
-      });
+      if (currentTheme === "18+") {
+        document.querySelectorAll("[data-predict-toggle]").forEach(toggle => {
+          const playerId = toggle.getAttribute("data-predict-toggle");
+          predicts[playerId] = toggle.dataset.value === "true" ? "true" : "false";
+        });
+      } else {
+        document.querySelectorAll("[data-predict-id]").forEach(inp => {
+          predicts[inp.getAttribute("data-predict-id")] = inp.value.trim();
+        });
+      }
 
       socket.emit("submitAnswers", { roomCode, playerId, self, predicts });
       submitted = true;
 
       // Disable alle inputs en behoud waarden
-      document.getElementById("selfAnswer").disabled = true;
-      document.querySelectorAll("[data-predict-id]").forEach(inp => {
-        inp.disabled = true;
-      });
+      disableAnswerUI(currentTheme);
 
       submitBtn.style.display = "none";
       editBtn.style.display = "block";
@@ -177,10 +188,7 @@
       submitted = false;
       
       // Enable alle inputs weer
-      document.getElementById("selfAnswer").disabled = false;
-      document.querySelectorAll("[data-predict-id]").forEach(inp => {
-        inp.disabled = false;
-      });
+      enableAnswerUI(currentTheme);
 
       submitBtn.style.display = "block";
       editBtn.style.display = "none";
@@ -190,6 +198,7 @@
     // room state
     socket.on("roomState", (state) => {
       currentPlayers = state.players || [];
+      currentTheme = state.theme || "default";
       if (!playerId) return;
 
       const me = currentPlayers.find(p => p.id === playerId);
@@ -218,24 +227,19 @@
         }
 
         show("stepAnswer");
-        buildPredictFields(currentPlayers, playerId);
+        setupAnswerUI(currentTheme);
+        buildPredictFields(currentPlayers, playerId, currentTheme);
 
         if (submitted) {
           // Disable alle inputs en behoud waarden
-          document.getElementById("selfAnswer").disabled = true;
-          document.querySelectorAll("[data-predict-id]").forEach(inp => {
-            inp.disabled = true;
-          });
+          disableAnswerUI(currentTheme);
           
           submitBtn.style.display = "none";
           editBtn.style.display = "block";
           document.getElementById("answerHint").textContent = "Verstuurd ✅ Wachten op de rest…";
         } else {
           // Enable alle inputs
-          document.getElementById("selfAnswer").disabled = false;
-          document.querySelectorAll("[data-predict-id]").forEach(inp => {
-            inp.disabled = false;
-          });
+          enableAnswerUI(currentTheme);
           
           submitBtn.style.display = "block";
           editBtn.style.display = "none";
@@ -258,57 +262,182 @@
       });
     }
 
-    function buildPredictFields(players, myId) {
+    function setupAnswerUI(theme) {
+      const selfAnswerInput = document.getElementById("selfAnswer");
+      const selfAnswerContainer = document.getElementById("selfAnswerContainer");
+      const selfToggleContainer = document.getElementById("selfToggleContainer");
+      
+      if (theme === "18+") {
+        selfAnswerInput.style.display = "none";
+        selfToggleContainer.style.display = "block";
+        
+        if (!document.getElementById("selfToggle")) {
+          // Check if we have a saved value
+          const savedValue = selfAnswerInput.value === "true" || selfAnswerInput.value === "TRUE";
+          selfToggleContainer.innerHTML = createToggle("selfToggle", "Mijn antwoord", savedValue);
+          const toggle = document.getElementById("selfToggle");
+          if (toggle) {
+            toggle.addEventListener("click", () => toggleTrueFalse(toggle));
+          }
+        }
+      } else {
+        selfAnswerInput.style.display = "block";
+        selfToggleContainer.style.display = "none";
+      }
+    }
+
+    function buildPredictFields(players, myId, theme) {
       const wrap = document.getElementById("predictFields");
       
-      // Behoud bestaande waarden en disabled state
-      const existingData = {};
-      document.querySelectorAll("[data-predict-id]").forEach(inp => {
-        const id = inp.getAttribute("data-predict-id");
-        existingData[id] = {
-          value: inp.value,
-          disabled: inp.disabled
-        };
-      });
-      
-      // Verwijder velden voor spelers die er niet meer zijn
-      const currentPlayerIds = players.filter(p => p.id !== myId).map(p => p.id);
-      document.querySelectorAll("[data-predict-id]").forEach(inp => {
-        const id = inp.getAttribute("data-predict-id");
-        if (!currentPlayerIds.includes(id)) {
-          inp.closest(".predictItem")?.remove();
-        }
-      });
-      
-      // Voeg nieuwe velden toe of update bestaande
-      players
-        .filter(p => p.id !== myId)
-        .forEach(p => {
-          let existingInput = document.querySelector(`[data-predict-id="${p.id}"]`);
-          
-          if (existingInput) {
-            // Update alleen de naam als die veranderd is
-            const whoEl = existingInput.previousElementSibling;
-            if (whoEl && whoEl.classList.contains("predictWho")) {
-              whoEl.textContent = `Het antwoord van ${escapeHtml(p.name)} is...`;
-            }
-          } else {
-            // Maak nieuw veld
-            const div = document.createElement("div");
-            div.className = "predictItem";
-            const savedData = existingData[p.id] || {};
-            div.innerHTML = `
-              <div class="predictWho">Het antwoord van ${escapeHtml(p.name)} is...</div>
-              <input class="input" data-predict-id="${p.id}" placeholder="Jouw voorspelling…" maxlength="80" value="${escapeHtml(savedData.value || "")}" ${savedData.disabled ? 'disabled' : ''}/>
-            `;
-            wrap.appendChild(div);
+      if (theme === "18+") {
+        // Behoud bestaande toggle states
+        const existingData = {};
+        document.querySelectorAll("[data-predict-toggle]").forEach(toggle => {
+          const id = toggle.getAttribute("data-predict-toggle");
+          existingData[id] = {
+            value: toggle.dataset.value === "true",
+            disabled: toggle.classList.contains("disabled")
+          };
+        });
+        
+        // Verwijder toggles voor spelers die er niet meer zijn
+        const currentPlayerIds = players.filter(p => p.id !== myId).map(p => p.id);
+        document.querySelectorAll("[data-predict-toggle]").forEach(toggle => {
+          const id = toggle.getAttribute("data-predict-toggle");
+          if (!currentPlayerIds.includes(id)) {
+            toggle.closest(".predictItem")?.remove();
           }
         });
+        
+        // Voeg nieuwe toggles toe of update bestaande
+        players
+          .filter(p => p.id !== myId)
+          .forEach(p => {
+            let existingToggle = document.querySelector(`[data-predict-toggle="${p.id}"]`);
+            
+            if (existingToggle) {
+              // Update alleen de naam als die veranderd is
+              const whoEl = existingToggle.previousElementSibling;
+              if (whoEl && whoEl.classList.contains("predictWho")) {
+                whoEl.textContent = escapeHtml(p.name);
+              }
+            } else {
+              // Maak nieuw toggle
+              const div = document.createElement("div");
+              div.className = "predictItem";
+              const savedData = existingData[p.id] || { value: false };
+              div.innerHTML = `
+                <div class="predictWho">${escapeHtml(p.name)}</div>
+                ${createToggle(`predict-${p.id}`, "", savedData.value, p.id)}
+              `;
+              wrap.appendChild(div);
+              
+              const toggle = document.getElementById(`predict-${p.id}`);
+              if (toggle) {
+                toggle.addEventListener("click", () => toggleTrueFalse(toggle));
+                if (savedData.disabled) toggle.classList.add("disabled");
+              }
+            }
+          });
+      } else {
+        // Originele text input logica
+        const existingData = {};
+        document.querySelectorAll("[data-predict-id]").forEach(inp => {
+          const id = inp.getAttribute("data-predict-id");
+          existingData[id] = {
+            value: inp.value,
+            disabled: inp.disabled
+          };
+        });
+        
+        const currentPlayerIds = players.filter(p => p.id !== myId).map(p => p.id);
+        document.querySelectorAll("[data-predict-id]").forEach(inp => {
+          const id = inp.getAttribute("data-predict-id");
+          if (!currentPlayerIds.includes(id)) {
+            inp.closest(".predictItem")?.remove();
+          }
+        });
+        
+        players
+          .filter(p => p.id !== myId)
+          .forEach(p => {
+            let existingInput = document.querySelector(`[data-predict-id="${p.id}"]`);
+            
+            if (existingInput) {
+              const whoEl = existingInput.previousElementSibling;
+              if (whoEl && whoEl.classList.contains("predictWho")) {
+                whoEl.textContent = `Het antwoord van ${escapeHtml(p.name)} is...`;
+              }
+            } else {
+              const div = document.createElement("div");
+              div.className = "predictItem";
+              const savedData = existingData[p.id] || {};
+              div.innerHTML = `
+                <div class="predictWho">Het antwoord van ${escapeHtml(p.name)} is...</div>
+                <input class="input" data-predict-id="${p.id}" placeholder="Jouw voorspelling…" maxlength="80" value="${escapeHtml(savedData.value || "")}" ${savedData.disabled ? 'disabled' : ''}/>
+              `;
+              wrap.appendChild(div);
+            }
+          });
+      }
+    }
+
+    function createToggle(id, label, value, predictId = null) {
+      const isTrue = value === true || value === "true";
+      const dataAttr = predictId ? `data-predict-toggle="${predictId}"` : "";
+      return `
+        <div class="toggleWrapper">
+          ${label ? `<div class="toggleLabel">${label}</div>` : ""}
+          <div class="toggleSwitch ${isTrue ? 'active' : ''}" id="${id}" ${dataAttr} data-value="${isTrue}">
+            <div class="toggleOption ${isTrue ? 'selected' : ''}">TRUE</div>
+            <div class="toggleOption ${!isTrue ? 'selected' : ''}">FALSE</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleTrueFalse(toggle) {
+      if (toggle.classList.contains("disabled")) return;
+      const isTrue = toggle.dataset.value === "true";
+      toggle.dataset.value = (!isTrue).toString();
+      toggle.classList.toggle("active");
+      toggle.querySelectorAll(".toggleOption").forEach(opt => opt.classList.toggle("selected"));
+    }
+
+    function disableAnswerUI(theme) {
+      if (theme === "18+") {
+        const selfToggle = document.getElementById("selfToggle");
+        if (selfToggle) selfToggle.classList.add("disabled");
+        document.querySelectorAll("[data-predict-toggle]").forEach(toggle => {
+          toggle.classList.add("disabled");
+        });
+      } else {
+        document.getElementById("selfAnswer").disabled = true;
+        document.querySelectorAll("[data-predict-id]").forEach(inp => {
+          inp.disabled = true;
+        });
+      }
+    }
+
+    function enableAnswerUI(theme) {
+      if (theme === "18+") {
+        const selfToggle = document.getElementById("selfToggle");
+        if (selfToggle) selfToggle.classList.remove("disabled");
+        document.querySelectorAll("[data-predict-toggle]").forEach(toggle => {
+          toggle.classList.remove("disabled");
+        });
+      } else {
+        document.getElementById("selfAnswer").disabled = false;
+        document.querySelectorAll("[data-predict-id]").forEach(inp => {
+          inp.disabled = false;
+        });
+      }
     }
 
     function resetAnswerUI() {
       document.getElementById("selfAnswer").value = "";
       document.getElementById("predictFields").innerHTML = "";
+      document.getElementById("selfToggleContainer").innerHTML = "";
       document.getElementById("answerHint").textContent = "";
       submitBtn.style.display = "block";
       editBtn.style.display = "none";

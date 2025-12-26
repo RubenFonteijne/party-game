@@ -104,8 +104,8 @@
       const code = roomCodeInput.value.trim().toUpperCase();
       joinError.textContent = "";
       
-      if (!code || code.length < 4) {
-        joinError.textContent = "Voer een geldige room code in (minimaal 4 tekens)";
+      if (!code || code.length < 6) {
+        joinError.textContent = "Voer een geldige room code in (6 tekens)";
         return;
       }
 

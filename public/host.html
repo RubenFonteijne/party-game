@@ -125,6 +125,48 @@
       margin-top: 40px;
     }
 
+    /* True/False answer styling */
+    .trueFalseAnswer {
+      display: inline-block;
+      padding: 12px 32px;
+      border-radius: 14px;
+      font-weight: 900;
+      font-size: clamp(32px, 4vw, 56px);
+      letter-spacing: 2px;
+    }
+
+    .trueFalseAnswer.true {
+      background: linear-gradient(135deg, rgba(110,231,255,.85), rgba(167,139,250,.85));
+      color: rgba(0,0,0,.95);
+      box-shadow: 0 0 24px rgba(110,231,255,.25), 0 0 24px rgba(167,139,250,.2);
+    }
+
+    .trueFalseAnswer.false {
+      background: rgba(0,0,0,.45);
+      color: rgba(255,255,255,.9);
+      border: 1px solid rgba(255,255,255,.2);
+    }
+
+    .trueFalseBadge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 10px;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .trueFalseBadge.true {
+      background: linear-gradient(135deg, rgba(110,231,255,.85), rgba(167,139,250,.85));
+      color: rgba(0,0,0,.95);
+    }
+
+    .trueFalseBadge.false {
+      background: rgba(0,0,0,.35);
+      color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.15);
+    }
+
     /* SCOREBOARD view: clean presentatie met 1 achtergrond */
     #viewScore {
       position: fixed;
@@ -413,9 +455,16 @@
         if (!rd) return;
 
         document.getElementById("targetLabel").textContent = `Antwoord van ${rd.targetName}`;
-        document.getElementById("targetAnswer").textContent = rd.targetAnswer || "(leeg)";
+        const isTrueFalse = state.theme === "18+";
+        const answerText = rd.targetAnswer || "(leeg)";
+        if (isTrueFalse) {
+          const isTrue = answerText === "true" || answerText === "TRUE";
+          document.getElementById("targetAnswer").innerHTML = `<span class="trueFalseAnswer ${isTrue ? 'true' : 'false'}">${isTrue ? 'TRUE' : 'FALSE'}</span>`;
+        } else {
+          document.getElementById("targetAnswer").textContent = answerText;
+        }
 
-        renderPredictionsList(rd.predictors);
+        renderPredictionsList(rd.predictors, isTrueFalse);
       }
 
       if (state.state === "SCOREBOARD") {
@@ -550,7 +599,7 @@
     }
 
     // Reveal: alle voorspellingen direct onder elkaar (geen animatie)
-    function renderPredictionsList(predictors) {
+    function renderPredictionsList(predictors, isTrueFalse = false) {
       const wrap = document.getElementById("predictionsList");
       if (!wrap) return;
 
@@ -563,7 +612,13 @@
         const name = p.predictorName ?? p.name ?? "Onbekend";
         const ans = (p.predicted ?? p.answer ?? "").toString() || "(leeg)";
         const plus = p.match ? ` <strong>+1</strong>` : "";
-        return `<div class="predRow">${escapeHtml(name)} — ${escapeHtml(ans)}${plus}</div>`;
+        
+        if (isTrueFalse) {
+          const isTrue = ans === "true" || ans === "TRUE";
+          return `<div class="predRow">${escapeHtml(name)} — <span class="trueFalseBadge ${isTrue ? 'true' : 'false'}">${isTrue ? 'TRUE' : 'FALSE'}</span>${plus}</div>`;
+        } else {
+          return `<div class="predRow">${escapeHtml(name)} — ${escapeHtml(ans)}${plus}</div>`;
+        }
       }).join("");
 
       wrap.style.display = "grid";

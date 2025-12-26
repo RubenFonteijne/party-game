@@ -45,19 +45,19 @@ const THEMES = {
     "Het beste vakantiegeschenk is …"
   ],
   "18+": [
-    "Mijn grootste guilty pleasure is …",
-    "Het meest gênante dat me ooit is overkomen is …",
-    "Mijn meest bizarre droom was over …",
-    "Het domste dat ik ooit heb gedaan is …",
-    "Mijn meest awkward moment was toen …",
-    "Het meest spannende dat ik ooit heb gedaan is …",
-    "Mijn grootste blunder was …",
-    "Het meest ongemakkelijke gesprek ging over …",
-    "Mijn meest bizarre gewoonte is …",
-    "Het raarste dat ik ooit heb gegeten is …",
-    "Mijn meest awkward date was …",
-    "Het meest gênante dat ik ooit heb gezegd is …",
-    "Mijn grootste taboe is …"
+    "Ik heb ooit een threesome gehad",
+    "Ik heb ooit seks gehad in het openbaar",
+    "Ik heb ooit een one-night stand gehad",
+    "Ik heb ooit geflirt met iemand terwijl ik in een relatie zat",
+    "Ik heb ooit iemand gezoend die ik niet kende",
+    "Ik heb ooit een sexting gestuurd",
+    "Ik heb ooit gedacht aan een collega tijdens seks",
+    "Ik heb ooit een vriend(in) gehad met voordelen",
+    "Ik heb ooit iemand gezoend van hetzelfde geslacht",
+    "Ik heb ooit een date gehad via een dating app",
+    "Ik heb ooit seks gehad op een ongewone plek",
+    "Ik heb ooit iemand afgewezen omdat ze te saai waren in bed",
+    "Ik heb ooit een fantasie gehad over een vriend(in)"
   ],
   dating: [
     "Mijn ideale date is …",
@@ -175,7 +175,7 @@ function computeMatchRelaxed(a, b) {
 
 function generateRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
 function shuffle(arr) {
@@ -256,6 +256,7 @@ function snapshot(room, isHost) {
   const maxPlayers = room.theme === "dating" ? MAX_PLAYERS_DATING : MAX_PLAYERS;
   const base = {
     roomCode: room.code,
+    theme: room.theme || "default",
     maxPlayers: maxPlayers,
     state: room.game.state,
     players,

@@ -592,3 +592,87 @@
   input, textarea, select {
     font-size: 18px !important;
   }
+
+  /* True/False Toggle Switch */
+  .toggleWrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .toggleLabel {
+    font-weight: 800;
+    color: rgba(255,255,255,.88);
+    min-width: 120px;
+  }
+
+  .toggleSwitch {
+    position: relative;
+    display: flex;
+    width: 200px;
+    height: 48px;
+    background: rgba(0,0,0,.28);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .toggleSwitch.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .toggleSwitch.active {
+    background: linear-gradient(90deg, rgba(52,211,153,.25), rgba(52,211,153,.15));
+    border-color: rgba(52,211,153,.55);
+    box-shadow: 0 0 0 1px rgba(52,211,153,.25) inset, 0 0 22px rgba(52,211,153,.16);
+  }
+
+  .toggleOption {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  .toggleOption:first-child {
+    color: rgba(255,255,255,.4);
+  }
+
+  .toggleOption:last-child {
+    color: rgba(255,255,255,.4);
+  }
+
+  .toggleSwitch.active .toggleOption:first-child {
+    color: rgba(0,0,0,.95);
+  }
+
+  .toggleSwitch:not(.active) .toggleOption:last-child {
+    color: rgba(255,255,255,.9);
+  }
+
+  .toggleSwitch::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(110,231,255,.85), rgba(167,139,250,.85));
+    border-radius: 13px 0 0 13px;
+    transition: transform 0.2s ease;
+    z-index: 0;
+  }
+
+  .toggleSwitch.active::before {
+    transform: translateX(100%);
+    border-radius: 0 13px 13px 0;
+  }
