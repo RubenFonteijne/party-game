@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Party Game</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div class="streak"></div>
+  <div class="streak s2"></div>
+  <div class="streak s3"></div>
+
+  <div class="wrap">
+    <div class="panel panel--narrow">
+      <div class="panelInner" style="grid-template-columns: 1fr;">
+        <div class="card">
+          <div class="cardTitle">Party Game</div>
+          <div class="kicker">Speel samen met vrienden en familie!</div>
+
+          <div class="formStack" style="margin-top: 24px;">
+            <!-- Create Game -->
+            <div>
+              <h2 style="font-size: 18px; font-weight: 800; color: rgba(255,255,255,.9); margin: 0 0 12px;">Nieuw spel starten</h2>
+              <p class="hint" style="margin-bottom: 12px;">Start een nieuwe game en deel de room code met je vrienden.</p>
+              <button class="btn btnFull" id="createBtn">Start nieuw spel</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Join Game -->
+            <div>
+              <h2 style="font-size: 18px; font-weight: 800; color: rgba(255,255,255,.9); margin: 0 0 12px;">Meedoen aan spel</h2>
+              <p class="hint" style="margin-bottom: 12px;">Voer de room code in om mee te doen.</p>
+              <div>
+                <label class="label" for="roomCodeInput">Room code</label>
+                <input 
+                  class="input" 
+                  id="roomCodeInput" 
+                  placeholder="Bijv. ABCD" 
+                  maxlength="6"
+                  style="text-transform: uppercase; letter-spacing: 2px; font-size: 20px; text-align: center;"
+                  oninput="this.value = this.value.toUpperCase()"
+                />
+                <div class="errorText" id="joinError" style="margin-top: 8px;"></div>
+              </div>
+              <button class="btn btnSecondary btnFull" id="joinBtn" style="margin-top: 12px;">Meedoen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Create new game
+    document.getElementById("createBtn").onclick = () => {
+      window.location.href = "/host";
+    };
+
+    // Join existing game
+    const roomCodeInput = document.getElementById("roomCodeInput");
+    const joinBtn = document.getElementById("joinBtn");
+    const joinError = document.getElementById("joinError");
+
+    const handleJoin = () => {
+      const code = roomCodeInput.value.trim().toUpperCase();
+      joinError.textContent = "";
+      
+      if (!code || code.length < 4) {
+        joinError.textContent = "Voer een geldige room code in (minimaal 4 tekens)";
+        return;
+      }
+
+      window.location.href = `/join/${code}`;
+    };
+
+    joinBtn.onclick = handleJoin;
+    
+    // Allow Enter key to join
+    roomCodeInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        handleJoin();
+      }
+    });
+
+    // Focus on input when page loads
+    roomCodeInput.focus();
+  </script>
+</body>
+</html>
+
