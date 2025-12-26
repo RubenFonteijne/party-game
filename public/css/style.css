@@ -397,6 +397,11 @@
     flex-direction: column;
     gap: 12px;
   }
+
+  /* Eerste label in formStack krijgt margin-top gelijk aan card padding */
+  .formStack > div:first-child .label {
+    margin-top: 16px;
+  }
   
   .label{
     display:block;
@@ -462,7 +467,7 @@
     font-weight: 800;
     letter-spacing: .2px;
     color: rgba(255,255,255,.88);
-    margin: 0 0 6px;
+    margin: 20px 0 6px;
   }
   
   .predictList{
@@ -473,15 +478,16 @@
   
   .predictItem{
     border-radius: 16px;
-    padding: 12px;
+    padding: 0;
     background: transparent;
     border: none;
   }
   
   .predictWho{
-    font-weight: 900;
-    margin: 0 0 8px;
-    color: rgba(255,255,255,.90);
+    font-weight: 800;
+    font-size: inherit;
+    margin: 0 0 6px;
+    color: rgba(255,255,255,.88);
   }
   
   .btnFull{

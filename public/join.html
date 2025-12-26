@@ -14,7 +14,7 @@
   <div class="streak s3"></div>
 
   <div class="header">
-    <h1 class="title">Meedoen</h1>
+    <h1 class="title" id="headerTitle">Meedoen</h1>
     <div class="subtitle">Room: <span id="roomCode"></span></div>
   </div>
 
@@ -122,6 +122,9 @@
     socket.on("joined", ({ playerId: pid, name }) => {
       playerId = pid;
       myName = name;
+
+      // Update header title met spelernaam
+      document.getElementById("headerTitle").textContent = myName;
 
       show("stepLobby");
       document.getElementById("myName").textContent = myName;
