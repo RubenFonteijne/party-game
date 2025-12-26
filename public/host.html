@@ -7,21 +7,24 @@
   <link rel="stylesheet" href="/css/style.css">
 
   <style>
-    /* Hide panel background in ANSWERING and REVEAL views */
+    /* Hide panel background in ANSWERING, REVEAL and SCOREBOARD views */
     body.answering-view .panel,
-    body.reveal-view .panel {
+    body.reveal-view .panel,
+    body.scoreboard-view .panel {
       background: transparent;
       border: none;
       box-shadow: none;
     }
     
     body.answering-view .panelInner,
-    body.reveal-view .panelInner {
+    body.reveal-view .panelInner,
+    body.scoreboard-view .panelInner {
       background: transparent;
     }
     
     body.answering-view .card,
-    body.reveal-view .card {
+    body.reveal-view .card,
+    body.scoreboard-view .card {
       background: transparent;
       border: none;
       box-shadow: none;
@@ -29,7 +32,8 @@
     }
     
     body.answering-view .wrap,
-    body.reveal-view .wrap {
+    body.reveal-view .wrap,
+    body.scoreboard-view .wrap {
       padding: 0;
     }
 
@@ -118,6 +122,46 @@
     }
 
     #viewReveal #nextRevealBtn {
+      margin-top: 40px;
+    }
+
+    /* SCOREBOARD view: clean presentatie met 1 achtergrond */
+    #viewScore {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 40px 28px;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    #viewScore .viewTitle {
+      display: none;
+    }
+
+    #viewScore > * {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    #viewScore table {
+      background: rgba(0,0,0,.35);
+      border-radius: 22px;
+      padding: 40px;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 60px rgba(0,0,0,.3);
+    }
+
+    #viewScore #nextQuestionBtn {
       margin-top: 40px;
     }
 
@@ -255,8 +299,6 @@
 
           <!-- SCOREBOARD -->
           <div id="viewScore" style="display:none;">
-            <div class="viewTitle">Scoreboard</div>
-
             <table>
               <thead>
                 <tr><th>Speler</th><th>Score</th></tr>
@@ -264,9 +306,7 @@
               <tbody id="scoreRows"></tbody>
             </table>
 
-            <div style="margin-top:14px;">
-              <button class="btn btnSecondary" id="nextQuestionBtn">Volgende vraag</button>
-            </div>
+            <button class="btn btnSecondary" id="nextQuestionBtn">Volgende vraag</button>
           </div>
 
         </div>
@@ -378,23 +418,25 @@
     }
 
     function showView(gameState) {
-      // Header verbergen in ANSWERING en REVEAL voor clean presentatie
+      // Header verbergen in ANSWERING, REVEAL en SCOREBOARD voor clean presentatie
       const topHeader = document.getElementById("topHeader");
-      topHeader.style.display = (gameState === "ANSWERING" || gameState === "REVEAL") ? "none" : "block";
+      topHeader.style.display = (gameState === "ANSWERING" || gameState === "REVEAL" || gameState === "SCOREBOARD") ? "none" : "block";
 
       // Add/remove classes to body for view styling
-      document.body.classList.remove("answering-view", "reveal-view");
+      document.body.classList.remove("answering-view", "reveal-view", "scoreboard-view");
       if (gameState === "ANSWERING") {
         document.body.classList.add("answering-view");
       } else if (gameState === "REVEAL") {
         document.body.classList.add("reveal-view");
+      } else if (gameState === "SCOREBOARD") {
+        document.body.classList.add("scoreboard-view");
       }
 
       document.getElementById("viewLobby").style.display = (gameState === "LOBBY") ? "block" : "none";
       document.getElementById("viewAnswering").style.display = (gameState === "ANSWERING") ? "flex" : "none";
       document.getElementById("answeringSlots").style.display = (gameState === "ANSWERING") ? "flex" : "none";
       document.getElementById("viewReveal").style.display = (gameState === "REVEAL") ? "flex" : "none";
-      document.getElementById("viewScore").style.display = (gameState === "SCOREBOARD") ? "block" : "none";
+      document.getElementById("viewScore").style.display = (gameState === "SCOREBOARD") ? "flex" : "none";
     }
 
     function renderSlots(players) {
