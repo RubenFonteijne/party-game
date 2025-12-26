@@ -10,23 +10,103 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 6;
+const MAX_PLAYERS_DATING = 2;
 const QUESTIONS_PER_ROUND = 10;
 
-const PROMPTS = [
-  "Ooit wil ik nog eens op vakantie naar …",
-  "ALs ik voor de rest van mijn leven nog één keuken mag kiezen, dan kies ik de … keuken",
-  "Ik zou later graag willen wonen in …",
-  "Mijn grootste guilty pleasure is …",
-  "Ik kan echt niet zonder …",
-  "Als ik morgen €1.000.000 win, dan koop ik als eerste …",
-  "Mijn meest random talent is …",
-  "Mijn grootste irritant in het verkeer is …",
-  "Op een zonnige dag op het terras, bestel ik ...",
-  "Het eerste wat ik doe als ik wakker word is ...",
-  "Als ik een superkracht mag kiezen, dan is dat ...",
-  "Mijn favoriete genre muziek is ...",
-  "Mijn favoriete kleur is ..."
-];
+const THEMES = {
+  default: [
+    "Ooit wil ik nog eens op vakantie naar …",
+    "Als ik voor de rest van mijn leven nog één keuken mag kiezen, dan kies ik de … keuken",
+    "Ik zou later graag willen wonen in …",
+    "Mijn grootste guilty pleasure is …",
+    "Ik kan echt niet zonder …",
+    "Als ik morgen €1.000.000 win, dan koop ik als eerste …",
+    "Mijn meest random talent is …",
+    "Mijn grootste irritant in het verkeer is …",
+    "Op een zonnige dag op het terras, bestel ik ...",
+    "Het eerste wat ik doe als ik wakker word is ...",
+    "Als ik een superkracht mag kiezen, dan is dat ...",
+    "Mijn favoriete genre muziek is ...",
+    "Mijn favoriete kleur is ..."
+  ],
+  holidays: [
+    "Mijn favoriete vakantiebestemming is …",
+    "Op vakantie kan ik echt niet zonder …",
+    "Het beste vakantiegevoel krijg ik van …",
+    "Mijn droomvakantie is …",
+    "Op vakantie eet ik het liefst …",
+    "Het leukste aan vakantie is …",
+    "Mijn ideale vakantie dag begint met …",
+    "Op vakantie mis ik het meest …",
+    "Mijn favoriete vakantieherinnering is …",
+    "De perfecte vakantie is …",
+    "Op vakantie lees ik graag …",
+    "Mijn vakantie guilty pleasure is …",
+    "Het beste vakantiegeschenk is …"
+  ],
+  "18+": [
+    "Mijn grootste guilty pleasure is …",
+    "Het meest gênante dat me ooit is overkomen is …",
+    "Mijn meest bizarre droom was over …",
+    "Het domste dat ik ooit heb gedaan is …",
+    "Mijn meest awkward moment was toen …",
+    "Het meest spannende dat ik ooit heb gedaan is …",
+    "Mijn grootste blunder was …",
+    "Het meest ongemakkelijke gesprek ging over …",
+    "Mijn meest bizarre gewoonte is …",
+    "Het raarste dat ik ooit heb gegeten is …",
+    "Mijn meest awkward date was …",
+    "Het meest gênante dat ik ooit heb gezegd is …",
+    "Mijn grootste taboe is …"
+  ],
+  dating: [
+    "Mijn ideale date is …",
+    "Het belangrijkste in een relatie is …",
+    "Mijn grootste turn-on is …",
+    "Mijn grootste turn-off is …",
+    "Het perfecte eerste date gesprek gaat over …",
+    "Mijn favoriete manier om te flirten is …",
+    "Het meest romantische dat iemand voor me heeft gedaan is …",
+    "Mijn droompartner is iemand die …",
+    "Het leukste aan daten is …",
+    "Mijn favoriete date locatie is …",
+    "Het meest belangrijke in een eerste indruk is …",
+    "Mijn ideale avond samen is …",
+    "Het beste daten advies dat ik ooit kreeg was …"
+  ],
+  friendgroup: [
+    "Met mijn vrienden kan ik altijd …",
+    "Mijn favoriete vriendengroep activiteit is …",
+    "Het beste aan mijn vrienden is …",
+    "Met vrienden maak ik het liefst …",
+    "Mijn favoriete herinnering met vrienden is …",
+    "Het leukste aan vrienden is …",
+    "Met vrienden ga ik het liefst naar …",
+    "Mijn favoriete vriendengroep traditie is …",
+    "Het beste vrienden moment was toen …",
+    "Met vrienden deel ik altijd …",
+    "Mijn favoriete vriendengroep inside joke gaat over …",
+    "Het leukste aan onze vriendengroep is …",
+    "Mijn favoriete vriendengroep avond bestaat uit …"
+  ],
+  work: [
+    "Mijn favoriete werkdag is …",
+    "Het beste aan mijn werk is …",
+    "Mijn ideale collega is iemand die …",
+    "Het leukste aan werken met collega's is …",
+    "Mijn favoriete werkactiviteit is …",
+    "Het beste team moment was toen …",
+    "Mijn ideale werkdag begint met …",
+    "Het leukste aan mijn team is …",
+    "Mijn favoriete koffiepauze gesprek gaat over …",
+    "Het beste aan samenwerken is …",
+    "Mijn favoriete werk traditie is …",
+    "Het leukste aan mijn collega's is …",
+    "Mijn ideale werk omgeving heeft …"
+  ]
+};
+
+const PROMPTS = THEMES.default;
 
 // roomCode -> room
 const rooms = new Map();
@@ -107,13 +187,16 @@ function shuffle(arr) {
   return a;
 }
 
-function createRoom() {
+function createRoom(theme = "default") {
   let code;
   do code = generateRoomCode();
   while (rooms.has(code));
 
+  const validTheme = THEMES[theme] ? theme : "default";
+
   rooms.set(code, {
     code,
+    theme: validTheme,
     players: new Map(),
     game: {
       state: "LOBBY",             // LOBBY | ANSWERING | REVEAL | SCOREBOARD
@@ -140,9 +223,10 @@ function getRoom(code) {
 }
 
 function startNewQuestion(room) {
-  // vul promptPool opnieuw als nodig
+  // vul promptPool opnieuw als nodig met theme-specifieke prompts
   if (!room.game.promptPool || room.game.promptPool.length === 0) {
-    room.game.promptPool = shuffle(PROMPTS);
+    const themePrompts = THEMES[room.theme] || THEMES.default;
+    room.game.promptPool = shuffle(themePrompts);
   }
 
   room.game.prompt = room.game.promptPool.shift();
@@ -169,9 +253,10 @@ function playersArray(room) {
 function snapshot(room, isHost) {
   const players = playersArray(room);
 
+  const maxPlayers = room.theme === "dating" ? MAX_PLAYERS_DATING : MAX_PLAYERS;
   const base = {
     roomCode: room.code,
-    maxPlayers: MAX_PLAYERS,
+    maxPlayers: maxPlayers,
     state: room.game.state,
     players,
     round: room.game.round,
@@ -236,7 +321,8 @@ function emitRoom(roomCode) {
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/host", (req, res) => {
-  const code = createRoom();
+  const theme = req.query.theme || "default";
+  const code = createRoom(theme);
   res.redirect(`/host/${code}`);
 });
 
@@ -277,7 +363,11 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", ({ roomCode, name }) => {
     const room = getRoom(roomCode);
     if (!room) return socket.emit("joinError", "Room bestaat niet (meer).");
-    if (room.players.size >= MAX_PLAYERS) return socket.emit("joinError", "Room is vol (max 6).");
+    const maxPlayers = room.theme === "dating" ? MAX_PLAYERS_DATING : MAX_PLAYERS;
+    if (room.players.size >= maxPlayers) {
+      const maxText = room.theme === "dating" ? "max 2" : "max 6";
+      return socket.emit("joinError", `Room is vol (${maxText}).`);
+    }
 
     const trimmed = String(name || "").trim().slice(0, 24);
     if (!trimmed) return socket.emit("joinError", "Vul een naam in.");
@@ -329,7 +419,8 @@ io.on("connection", (socket) => {
 
     room.game.question = 1;
     room.game.questionsPerRound = QUESTIONS_PER_ROUND;
-    room.game.promptPool = shuffle(PROMPTS);
+    const themePrompts = THEMES[room.theme] || THEMES.default;
+    room.game.promptPool = shuffle(themePrompts);
 
     startNewQuestion(room);
 

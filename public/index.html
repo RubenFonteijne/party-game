@@ -23,7 +23,21 @@
             <!-- Create Game -->
             <div>
               <h2 style="font-size: 18px; font-weight: 800; color: rgba(255,255,255,.9); margin: 0 0 12px;">Nieuw spel starten</h2>
-              <p class="hint" style="margin-bottom: 12px;">Start een nieuwe game en deel de room code met je vrienden.</p>
+              <p class="hint" style="margin-bottom: 12px;">Kies een thema en start een nieuwe game.</p>
+              
+              <div style="margin-bottom: 16px;">
+                <label class="label" for="themeSelect">Thema</label>
+                <select class="input" id="themeSelect" style="cursor: pointer;">
+                  <option value="default">Standaard</option>
+                  <option value="holidays">Vakantie</option>
+                  <option value="18+">18+</option>
+                  <option value="dating">Dating (2 personen)</option>
+                  <option value="friendgroup">Vriendengroep</option>
+                  <option value="work">Werk collega's</option>
+                </select>
+                <div class="hint" id="themeHint" style="margin-top: 6px;"></div>
+              </div>
+              
               <button class="btn btnFull" id="createBtn">Start nieuw spel</button>
             </div>
 
@@ -54,9 +68,31 @@
   </div>
 
   <script>
+    const themeSelect = document.getElementById("themeSelect");
+    const themeHint = document.getElementById("themeHint");
+    
+    // Update hint based on theme
+    const themeHints = {
+      default: "Algemene vragen voor iedereen",
+      holidays: "Vragen over vakantie en reizen",
+      "18+": "Volwassen vragen (18+)",
+      dating: "Vragen voor 2 personen om elkaar beter te leren kennen",
+      friendgroup: "Vragen voor vriendengroepen",
+      work: "Vragen voor werk collega's"
+    };
+    
+    themeSelect.addEventListener("change", () => {
+      const theme = themeSelect.value;
+      themeHint.textContent = themeHints[theme] || "";
+    });
+    
+    // Initialize hint
+    themeSelect.dispatchEvent(new Event("change"));
+    
     // Create new game
     document.getElementById("createBtn").onclick = () => {
-      window.location.href = "/host";
+      const theme = themeSelect.value;
+      window.location.href = `/host?theme=${encodeURIComponent(theme)}`;
     };
 
     // Join existing game
