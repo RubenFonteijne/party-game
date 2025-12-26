@@ -481,17 +481,36 @@
     padding: 0;
     background: transparent;
     border: none;
+  }
+
+  /* 18+ theme: naam en toggle naast elkaar */
+  .predictItem[data-theme="18+"] {
     display: flex;
     align-items: center;
     gap: 16px;
+  }
+
+  /* Andere thema's: naam boven input */
+  .predictItem:not([data-theme="18+"]) {
+    display: block;
   }
   
   .predictWho{
     font-weight: 800;
     font-size: inherit;
-    margin: 0;
+    margin: 0 0 6px;
     color: rgba(255,255,255,.88);
+  }
+
+  .predictItem[data-theme="18+"] .predictWho {
     min-width: 100px;
+    margin: 0;
+  }
+
+  /* Input velden 100% breed voor niet-18+ thema's */
+  .predictItem:not([data-theme="18+"]) .input {
+    width: 100%;
+    margin-top: 0;
   }
   
   .btnFull{
