@@ -89,6 +89,15 @@
             <div class="hint" id="waitText">Wachten…</div>
           </div>
 
+          <!-- STEP: GAME FINISHED -->
+          <div id="stepFinished" style="display:none;">
+            <div class="cardTitle">Game afgerond!</div>
+            <div class="kicker">De game is klaar. Scan de QR code van een nieuwe game om opnieuw mee te doen.</div>
+            <div class="btnRowJoin" style="margin-top: 24px;">
+              <button class="btn btnFull" id="openCameraBtn">Open camera</button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -105,6 +114,9 @@
     let myName = "";
     let currentPlayers = [];
     let submitted = false;
+    let lastRound = 0;
+    let lastQuestion = 0;
+    let wasInGame = false;
 
     // NEW: track last question so we can reset UI when a new question starts
     let lastQuestionKey = null;
@@ -204,11 +216,24 @@
       const me = currentPlayers.find(p => p.id === playerId);
 
       if (state.state === "LOBBY") {
-        show("stepLobby");
-        if (me) {
-          document.getElementById("status").textContent = me.ready
-            ? "Ready! ✅ Wachten op host…"
-            : "Niet ready. Klik ready als je wil starten.";
+        // Check if game is finished (back to lobby after completing all questions)
+        const currentRound = state.round || 1;
+        const currentQ = state.question || 0;
+        const totalQuestions = state.questionsPerRound || 10;
+        
+        // If we were in a game and now back to lobby with question 0, game is finished
+        if (wasInGame && currentQ === 0 && lastQuestion >= totalQuestions) {
+          // Game is finished
+          show("stepFinished");
+          wasInGame = false;
+        } else {
+          show("stepLobby");
+          if (me) {
+            document.getElementById("status").textContent = me.ready
+              ? "Ready! ✅ Wachten op host…"
+              : "Niet ready. Klik ready als je wil starten.";
+          }
+          wasInGame = false;
         }
 
         // reset everything when going back to lobby
@@ -216,6 +241,15 @@
         lastQuestionKey = null;
         resetAnswerUI();
       }
+      
+      // Track if we're in a game
+      if (state.state === "ANSWERING" || state.state === "REVEAL" || state.state === "SCOREBOARD") {
+        wasInGame = true;
+      }
+      
+      // Track round and question for game finished detection
+      lastRound = state.round || 1;
+      lastQuestion = state.question || 0;
 
       if (state.state === "ANSWERING") {
         // NEW: detect new question and reset old answers/predictions
@@ -257,10 +291,16 @@
     });
 
     function show(id) {
-      ["stepName", "stepLobby", "stepAnswer", "stepWait"].forEach(x => {
+      ["stepName", "stepLobby", "stepAnswer", "stepWait", "stepFinished"].forEach(x => {
         document.getElementById(x).style.display = (x === id) ? "block" : "none";
       });
     }
+
+    // Open camera for QR code scanning
+    document.getElementById("openCameraBtn").onclick = () => {
+      // Redirect to homepage where they can scan QR code
+      window.location.href = "/";
+    };
 
     function setupAnswerUI(theme) {
       const selfAnswerInput = document.getElementById("selfAnswer");
