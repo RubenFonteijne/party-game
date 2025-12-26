@@ -200,8 +200,9 @@
   .btn{
     appearance:none;
     border:none;
-    border-radius: 12px;
-    padding: 10px 14px;
+    border-radius: 14px;
+    padding: 12px 12px;
+    font-size: 18px;
     font-weight: 800;
     cursor:pointer;
     color: rgba(0,0,0,.90);
@@ -220,6 +221,9 @@
     background: rgba(255,255,255,.10);
     border: 1px solid rgba(255,255,255,.14);
     box-shadow:none;
+    padding: 12px 12px;
+    font-size: 18px;
+    border-radius: 14px;
   }
 
   /* Right side header */
@@ -396,6 +400,7 @@
   
   .label{
     display:block;
+    font-size: inherit;
     font-weight: 800;
     color: rgba(255,255,255,.88);
     margin-bottom: 6px;
@@ -453,11 +458,11 @@
   }
   
   .sectionHeader{
-    font-size: 14px;
-    font-weight: 900;
+    font-size: inherit;
+    font-weight: 800;
     letter-spacing: .2px;
-    color: rgba(255,255,255,.90);
-    margin: 0 0 10px;
+    color: rgba(255,255,255,.88);
+    margin: 0 0 6px;
   }
   
   .predictList{
@@ -469,8 +474,8 @@
   .predictItem{
     border-radius: 16px;
     padding: 12px;
-    background: rgba(0,0,0,.18);
-    border: 1px solid rgba(255,255,255,.10);
+    background: transparent;
+    border: none;
   }
   
   .predictWho{
